@@ -1,8 +1,8 @@
-import { Inyectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
-@Inyectable()
-export class welcomeService {
-    getMessage(): string {
-        return 'Bienvenido a la API de CourseHub';
+@Injectable()
+export class WelcomeService {
+    getMessage():{message: string }{
+        return {message:'Bienvenido a courseHUB  API '};
     }
 }
