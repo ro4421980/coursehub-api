@@ -1,34 +1,46 @@
 import { Injectable } from '@nestjs/common';
+import { CreateCourseDto } from './dto/create-courses.dto.js';
+
 type Course = {
-    id: number;
-    title: string;
-    level: string;
+  id: number;
+  title: string;
+  level: string;
+};
+
+type CreateCourseInput = {
+  title: string;
+  level: string;
+};
+
+type UpdateCourseInput = {
+  title?: string;
+  level?: string;
 };
 
 @Injectable()
 export class CoursesService {
-    private readonly courses: Course[] = [
-        { id: 1, title: 'NestJS Fundamentals', level: 'Beginner' },
-        { id: 2, title: 'REST API NestJS', level: 'Beginner' },
-        { id: 3, title: 'NestJS Architecture', level: 'Intermediate' },
-    ];
+  private nextId = 4;
 
-findAll(level?: string): Course[] {
+  private courses: Course[] = [
+    { id: 1, title: 'NestJS Fundamentals', level: 'beginner' },
+    { id: 2, title: 'REST APIs with NestJS', level: 'beginner' },
+    { id: 3, title: 'NestJS Architecture', level: 'intermediate' },
+  ];
+
+  findAll(level?: string): Course[] {
     if (!level) {
-        return this.courses;
+      return this.courses;
     }
-    return this.courses.filter(course => course.level === level);
-}
-findOne(id: number): Course | undefined {
-    return this.courses.find(course => course.id === id);
-}
-  create(input: CreateCourseInput): Course {
-    const course: Course = {
-      id: Math.max(0, ...this.courses.map((item) => item.id)) + 1,
-      title: input.title,
-      level: input.level,
-    };
 
+    return this.courses.filter((course) => course.level === level);
+  }
+
+  findOne(id: number): Course | undefined {
+    return this.courses.find((course) => course.id === id);
+  }
+
+  create(createCourseDto: CreateCourseDto): Course {
+    const course = { id: this.nextId++, ...createCourseDto };
     this.courses.push(course);
     return course;
   }
