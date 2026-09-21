@@ -3,7 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Student } from './entities/student.entity.js';
+import { Student } from './entities/student.entities.js';
 import { CreateStudentDto } from './dto/create-student.dto.js';
 import { UpdateStudentDto } from './dto/update-student.dto.js';
 import { FilterStudentDto } from './dto/filter-student.dto.js';

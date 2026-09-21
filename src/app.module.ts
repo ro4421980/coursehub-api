@@ -11,7 +11,7 @@ import { EnrollmentsModule } from './enrollments/enrollments.module.js';
   imports: [
     CoursesModule, 
     StudentsModule, 
-    EnrollmentsModule
+    EnrollmentsModule,
   ],
   controllers: [AppController, WelcomeController],
   providers: [AppService, WelcomeService],
