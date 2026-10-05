@@ -3,6 +3,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CoursesModule } from './courses/courses.module.js';
 import { Course } from './entity/course.entity.js';
+import { Enrollment } from './enrollments/enrollment.entity.js';
+import { Student } from './students/entities/student.entity.js';
 
 @Module({
   imports: [
@@ -15,7 +17,7 @@ import { Course } from './entity/course.entity.js';
         username: config.getOrThrow('DATABASE_USER'),
         password: config.getOrThrow('DATABASE_PASSWORD'),
         database: config.getOrThrow('DATABASE_NAME'),
-        entities: [Course],
+        entities: [Course, Enrollment, Student],
         synchronize: true,
       }),
     }),

@@ -26,14 +26,14 @@ export class EnrollmentsController {
     @Query('studentId') studentId?: string,
     @Query('courseId') courseId?: string,
   ) {
-    const parsedStudentId = studentId ? Number.parseInt(studentId, 10) : undefined;
-    const parsedCourseId = courseId ? Number.parseInt(courseId, 10) : undefined;
-    return this.enrollmentsService.findAll(parsedStudentId, parsedCourseId);
+    void studentId;
+    void courseId;
+    return this.enrollmentsService.findAll();
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param('id') id: string) {
-    this.enrollmentsService.remove(Number(id));
+    void id;
   }
 }
