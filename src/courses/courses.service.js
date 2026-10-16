@@ -4,6 +4,7 @@ import { Course } from '../entity/course.entity.js';
 
 /** @typedef {import('typeorm').Repository<Course>} CourseRepository */
 /** @typedef {import('./dto/create-courses.dto.js').CreateCourseDto} CreateCourseDto */
+/** @typedef {import('./dto/courses-query.dto.js').CoursesQueryDto} CoursesQueryDto */
 
 export class CoursesService {
   /** @param {CourseRepository} coursesRepository */
@@ -11,9 +12,27 @@ export class CoursesService {
     this.coursesRepository = coursesRepository;
   }
 
-  /** @param {string} [level] @returns {Promise<Course[]>} */
-  findAll(level) {
-    return this.coursesRepository.find({ where: level ? { level } : {} });
+  /**
+   * @param {CoursesQueryDto} query
+   * @returns {Promise<{items: Course[], meta: {total: number, page: number, limit: number, totalPages: number}}>}
+   */
+  async findAll(query) {
+    const [items, total] = await this.coursesRepository.findAndCount({
+      where: query.level ? { level: query.level } : {},
+      order: { [query.sortBy]: query.order, id: query.order },
+      skip: (query.page - 1) * query.limit,
+      take: query.limit,
+    });
+
+    return {
+      items,
+      meta: {
+        total,
+        page: query.page,
+        limit: query.limit,
+        totalPages: Math.ceil(total / query.limit),
+      },
+    };
   }
 
   /** @param {number} id @returns {Promise<Course>} */

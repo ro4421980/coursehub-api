@@ -57,6 +57,22 @@ $ npm run test:e2e
 $ npm run test:cov
 ```
 
+## Listado navegable de cursos
+
+`GET /courses` acepta `level`, `page`, `limit`, `sortBy` y `order`. La página
+predeterminada es 1, el límite predeterminado es 10 y el límite máximo es 50.
+Solo se puede ordenar por `id`, `title` o `level` (en orden `ASC` o `DESC`).
+La respuesta contiene `items` y metadatos de paginación.
+
+Ejemplo:
+
+```text
+GET http://localhost:3000/courses?level=beginner&page=2&limit=5&sortBy=title&order=ASC
+```
+
+Si un parámetro no cumple las reglas (por ejemplo `page=0`, `limit=200` o
+`sortBy=createdAt`), la API responde con `400 Bad Request`.
+
 ## Deployment
 
 When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
