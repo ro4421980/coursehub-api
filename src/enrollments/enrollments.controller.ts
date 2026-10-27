@@ -6,11 +6,13 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  ParseIntPipe,
   Post,
   Query,
 } from '@nestjs/common';
 import { EnrollmentsService } from './enrollments.service.js';
 import { CreateEnrollmentDto } from './create-enrollment.dto.js';
+import { EnrollmentsQueryDto } from './dto/enrollments-query.dto.js';
 
 @Controller('enrollments')
 export class EnrollmentsController {
@@ -22,18 +24,13 @@ export class EnrollmentsController {
   }
 
   @Get()
-  findAll(
-    @Query('studentId') studentId?: string,
-    @Query('courseId') courseId?: string,
-  ) {
-    void studentId;
-    void courseId;
-    return this.enrollmentsService.findAll();
+  findAll(@Query() query: EnrollmentsQueryDto) {
+    return this.enrollmentsService.findAll(query);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  remove(@Param('id') id: string) {
-    void id;
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.enrollmentsService.remove(id);
   }
 }

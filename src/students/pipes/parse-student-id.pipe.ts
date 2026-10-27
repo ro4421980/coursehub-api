@@ -1,11 +1,14 @@
 import { BadRequestException, Injectable, PipeTransform } from '@nestjs/common';
 
 @Injectable()
-export class ParseStudentIdPipe implements PipeTransform<string, string> {
-  transform(value: string): string {
-    if (!value || value.trim() === '') {
-      throw new BadRequestException('El ID del estudiante no puede estar vacío');
+export class ParseStudentIdPipe implements PipeTransform<string, number> {
+  transform(value: string): number {
+    const id = Number(value);
+    if (!Number.isInteger(id) || id <= 0) {
+      throw new BadRequestException(
+        'El ID del estudiante debe ser un entero positivo',
+      );
     }
-    return value.trim();
+    return id;
   }
 }

@@ -1,10 +1,16 @@
-import { Injectable, NotFoundException, BadRequestException, ConflictException, InternalServerErrorException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Enrollment } from './enrollment.entity.js';
 import { Student } from '../students/entities/student.entity.js';
 import { Course } from '../entity/course.entity.js';
 import { CreateEnrollmentDto } from './create-enrollment.dto.js';
+import { EnrollmentsQueryDto } from './dto/enrollments-query.dto.js';
 
 @Injectable()
 export class EnrollmentsService {
@@ -61,14 +67,49 @@ export class EnrollmentsService {
       if (typeof error === 'object' && error !== null && 'code' in error && error.code === '23505') {
         throw new ConflictException('El estudiante ya está matriculado en este curso.');
       }
-      throw new InternalServerErrorException('Error al registrar la matrícula.');
+      throw error;
     }
   }
 
-  async findAll(): Promise<Enrollment[]> {
-    return await this.enrollmentRepository.find({
-      relations: { student: true, course: true },
-    });
+  async findAll(query: EnrollmentsQueryDto) {
+    const queryBuilder = this.enrollmentRepository
+      .createQueryBuilder('enrollment')
+      .leftJoinAndSelect('enrollment.student', 'student')
+      .leftJoinAndSelect('enrollment.course', 'course');
+
+    const search = query.search?.trim();
+    if (search) {
+      queryBuilder.andWhere(
+        '(student.name ILIKE :search OR course.title ILIKE :search)',
+        { search: `%${search}%` },
+      );
+    }
+
+    if (query.studentId !== undefined) {
+      queryBuilder.andWhere('student.id = :studentId', {
+        studentId: query.studentId,
+      });
+    }
+
+    if (query.activeOnly === 'true') {
+      queryBuilder.andWhere('student.isActive = :active', { active: true });
+    }
+
+    queryBuilder
+      .orderBy('enrollment.id', 'ASC')
+      .skip((query.page - 1) * query.limit)
+      .take(query.limit);
+
+    const [items, total] = await queryBuilder.getManyAndCount();
+    return {
+      items,
+      meta: {
+        total,
+        page: query.page,
+        limit: query.limit,
+        totalPages: Math.ceil(total / query.limit),
+      },
+    };
   }
 
   async findByCourse(courseId: number): Promise<Enrollment[]> {
@@ -76,5 +117,12 @@ export class EnrollmentsService {
       where: { course: { id: courseId } },
       relations: { student: true },
     });
+  }
+
+  async remove(id: number): Promise<void> {
+    const result = await this.enrollmentRepository.delete(id);
+    if (!result.affected) {
+      throw new NotFoundException(`La matrícula con ID ${id} no existe.`);
+    }
   }
 }

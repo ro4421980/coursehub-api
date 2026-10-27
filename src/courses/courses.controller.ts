@@ -1,34 +1,48 @@
-import { Controller, Get, Param, Query, Post, Patch, Delete, Body } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { CoursesService } from './courses.service.js';
 import { CreateCourseDto } from './dto/create-courses.dto.js';
 import { CoursesQueryDto } from './dto/courses-query.dto.js';
+import { UpdateCourseDto } from './dto/update-course.dto.js';
 
 @Controller('courses')
 export class CoursesController {
-    constructor(private readonly coursesService: CoursesService) {}
-    @Get()
-    findAll(@Query() query: CoursesQueryDto) {
-        return this.coursesService.findAll(query);
-    }
-    @Get(':id')
-    findOne(@Param('id') id:string){
-        return this.coursesService.findOne(Number(id));
-    }
-      @Post()
+  constructor(private readonly coursesService: CoursesService) {}
+
+  @Get()
+  findAll(@Query() query: CoursesQueryDto) {
+    return this.coursesService.findAll(query);
+  }
+
+  @Get(':id')
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.coursesService.findOne(id);
+  }
+
+  @Post()
   create(@Body() createCourseDto: CreateCourseDto) {
     return this.coursesService.create(createCourseDto);
   }
 
   @Patch(':id')
   update(
-    @Param('id') id: string,
-    @Body() body: { title?: string; level?: string },
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: UpdateCourseDto,
   ) {
-    return this.coursesService.update(Number(id), body);
+    return this.coursesService.update(id, body);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.coursesService.remove(Number(id));
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.coursesService.remove(id);
   }
 }

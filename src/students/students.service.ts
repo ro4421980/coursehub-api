@@ -1,89 +1,116 @@
-import {
-  ConflictException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
-import { Student } from './entities/student.entities.js';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { FindOptionsWhere, ILike, Repository } from 'typeorm';
+import { Student } from './entities/student.entity.js';
 import { CreateStudentDto } from './dto/create-student.dto.js';
 import { UpdateStudentDto } from './dto/update-student.dto.js';
 import { FilterStudentDto } from './dto/filter-student.dto.js';
 
 @Injectable()
 export class StudentsService {
-  private students: Student[] = [];
+  constructor(
+    @InjectRepository(Student)
+    private readonly studentsRepository: Repository<Student>,
+  ) {}
 
-  findAll(filters?: FilterStudentDto): Student[] {
-    let result = this.students;
+  findAll(filters?: FilterStudentDto): Promise<Student[]> {
+    const where: FindOptionsWhere<Student> = {};
 
-    if (filters) {
-      if (filters.career) {
-        result = result.filter((s) =>
-          s.career.toLowerCase().includes(filters.career!.toLowerCase()),
-        );
-      }
-      if (filters.semester) {
-        result = result.filter((s) => s.semester === filters.semester);
-      }
-      if (filters.isActive !== undefined) {
-        result = result.filter((s) => s.isActive === filters.isActive);
-      }
+    if (filters?.career) {
+      where.career = ILike(`%${filters.career}%`);
+    }
+    if (filters?.semester !== undefined) {
+      where.semester = filters.semester;
+    }
+    if (filters?.isActive !== undefined) {
+      where.isActive = filters.isActive;
     }
 
-    return result;
+    return this.studentsRepository.find({ where, order: { id: 'ASC' } });
   }
 
-  findOne(id: string): Student {
-    const student = this.students.find((s) => s.id === id);
+  async findOne(id: number): Promise<Student> {
+    const student = await this.studentsRepository.findOneBy({ id });
     if (!student) {
       throw new NotFoundException(`El estudiante con ID "${id}" no existe`);
     }
     return student;
   }
 
-  create(createStudentDto: CreateStudentDto): Student {
-    const emailExists = this.students.some(
-      (s) => s.email.toLowerCase() === createStudentDto.email.toLowerCase(),
-    );
-
+  async create(createStudentDto: CreateStudentDto): Promise<Student> {
+    const email = createStudentDto.email.trim().toLowerCase();
+    const emailExists = await this.studentsRepository.findOneBy({
+      email: ILike(email),
+    });
     if (emailExists) {
       throw new ConflictException(
         `El correo "${createStudentDto.email}" ya se encuentra registrado`,
       );
     }
 
-    const newStudent: Student = {
-      id: Date.now().toString(),
+    const student = this.studentsRepository.create({
       ...createStudentDto,
-      isActive: true,
-    };
-
-    this.students.push(newStudent);
-    return newStudent;
+      email,
+    });
+    try {
+      return await this.studentsRepository.save(student);
+    } catch (error) {
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        error.code === '23505'
+      ) {
+        throw new ConflictException(
+          `El correo "${email}" ya se encuentra registrado`,
+        );
+      }
+      throw error;
+    }
   }
 
-  update(id: string, updateStudentDto: UpdateStudentDto): Student {
-    const student = this.findOne(id);
+  async update(
+    id: number,
+    updateStudentDto: UpdateStudentDto,
+  ): Promise<Student> {
+    const student = await this.findOne(id);
+    const email = updateStudentDto.email?.trim().toLowerCase();
 
     if (
-      updateStudentDto.email &&
-      updateStudentDto.email.toLowerCase() !== student.email.toLowerCase()
+      email &&
+      email !== student.email.toLowerCase()
     ) {
-      const emailExists = this.students.some(
-        (s) => s.email.toLowerCase() === updateStudentDto.email!.toLowerCase(),
-      );
-      if (emailExists) {
+      const emailExists = await this.studentsRepository.findOneBy({
+        email: ILike(email),
+      });
+      if (emailExists && emailExists.id !== id) {
         throw new ConflictException(
-          `El correo "${updateStudentDto.email}" ya pertenece a otro estudiante`,
+          `El correo "${email}" ya pertenece a otro estudiante`,
         );
       }
     }
 
-    Object.assign(student, updateStudentDto);
-    return student;
+    Object.assign(student, updateStudentDto, email ? { email } : {});
+    try {
+      return await this.studentsRepository.save(student);
+    } catch (error) {
+      if (
+        email &&
+        typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        error.code === '23505'
+      ) {
+        throw new ConflictException(
+          `El correo "${email}" ya pertenece a otro estudiante`,
+        );
+      }
+      throw error;
+    }
   }
 
-  remove(id: string): void {
-    const student = this.findOne(id);
+  async remove(id: number): Promise<void> {
+    const student = await this.findOne(id);
 
     if (!student.isActive) {
       throw new ConflictException(
@@ -91,12 +118,12 @@ export class StudentsService {
       );
     }
 
-    this.students = this.students.filter((s) => s.id !== id);
+    await this.studentsRepository.remove(student);
   }
 
-  toggleStatus(id: string): Student {
-    const student = this.findOne(id);
+  async toggleStatus(id: number): Promise<Student> {
+    const student = await this.findOne(id);
     student.isActive = !student.isActive;
-    return student;
+    return this.studentsRepository.save(student);
   }
 }

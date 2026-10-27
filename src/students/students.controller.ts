@@ -26,7 +26,7 @@ export class StudentsController {
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseStudentIdPipe) id: string) {
+  findOne(@Param('id', ParseStudentIdPipe) id: number) {
     return this.studentsService.findOne(id);
   }
 
@@ -37,7 +37,7 @@ export class StudentsController {
 
   @Patch(':id')
   update(
-    @Param('id', ParseStudentIdPipe) id: string,
+    @Param('id', ParseStudentIdPipe) id: number,
     @Body() updateStudentDto: UpdateStudentDto,
   ) {
     return this.studentsService.update(id, updateStudentDto);
@@ -45,12 +45,12 @@ export class StudentsController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  remove(@Param('id', ParseStudentIdPipe) id: string) {
+  remove(@Param('id', ParseStudentIdPipe) id: number) {
     return this.studentsService.remove(id);
   }
 
   @Patch(':id/status')
-  toggleStatus(@Param('id', ParseStudentIdPipe) id: string) {
+  toggleStatus(@Param('id', ParseStudentIdPipe) id: number) {
     return this.studentsService.toggleStatus(id);
   }
 }

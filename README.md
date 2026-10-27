@@ -31,6 +31,46 @@
 $ npm install
 ```
 
+## Configuration
+
+Copy `.env.example` to `.env` and set the database connection values for your
+environment. `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER` and `DB_PASSWORD` are
+required. `PORT` defaults to `3000` and `NODE_ENV` defaults to `development`.
+The application validates these values before connecting to PostgreSQL.
+
+The local `.env` file is ignored by Git. Keep credentials there or in your
+deployment environment, and never commit real secrets. `.env.example` is only
+a template and contains no working credentials.
+
+## Evidencia Etapa 2: conexión TypeORM por entorno
+
+TypeORM obtiene host, puerto, usuario, contraseña y base de datos desde el
+`ConfigService`. `ConfigModule` valida esas variables antes de inicializar la
+conexión. Las entidades se cargan con `autoLoadEntities`.
+
+Estudiantes y matrículas usan repositorios TypeORM: al crear un registro se
+persiste en PostgreSQL y queda disponible para la relación de matrícula. Una
+restricción única en la base de datos y el manejo de conflictos evitan
+matrículas duplicadas para el mismo estudiante y curso. La búsqueda de
+matrículas usa parámetros SQL enlazados; los listados de cursos y matrículas
+validan y limitan los parámetros de paginación.
+
+| Entorno       | `synchronize` | Política                                                                                                                                          |
+| ------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `development` | `true`        | Permitido para desarrollo local.                                                                                                                  |
+| `production`  | `false`       | No modifica el esquema automáticamente; los cambios requieren migraciones revisadas. Configura `NODE_ENV=production` explícitamente al desplegar. |
+| `test`        | `false`       | No sincroniza el esquema automáticamente.                                                                                                         |
+
+`src/config/database.config.spec.ts` verifica los valores de `synchronize` por
+entorno y la validación de las variables obligatorias sin conectarse a una base
+de datos. La simulación de producción se puede realizar sobre una copia temporal
+de `.env`; nunca hace falta modificar ni mostrar el archivo local. Para revisar
+el proyecto, ejecuta `npm run build`, `npm test` y `npm run lint`.
+
+No hay migraciones en el repositorio todavía; antes de desplegar cambios de
+esquema en producción, hay que crearlas, revisarlas y aplicarlas de forma
+controlada. No se debe habilitar `synchronize` en producción.
+
 ## Compile and run the project
 
 ```bash
@@ -72,6 +112,60 @@ GET http://localhost:3000/courses?level=beginner&page=2&limit=5&sortBy=title&ord
 
 Si un parámetro no cumple las reglas (por ejemplo `page=0`, `limit=200` o
 `sortBy=createdAt`), la API responde con `400 Bad Request`.
+
+## Registro de cuentas
+
+`POST /auth/register` recibe `email` y `password`. El DTO normaliza el correo
+(trim y minúsculas), valida que sea un correo válido de hasta 150 caracteres
+(el límite de la columna) y la contraseña se conserva
+exactamente como se envió y debe tener entre 8 y 72 bytes, compatible con el
+límite de bcrypt. El servidor guarda únicamente `password_hash`, calculado con
+bcrypt y costo 12. La respuesta `201 Created` incluye `id`, `email` y
+`createdAt`, nunca la contraseña ni su hash. Un correo repetido responde
+`409 Conflict`; una solicitud inválida responde `400 Bad Request`.
+
+`POST /auth/login` valida `LoginDto`, recupera explícitamente `passwordHash`
+solo para esa operación y compara la contraseña con bcrypt. Solo después de
+autenticar correctamente, firma un JWT y responde `200 OK` con `accessToken`
+y un objeto `user` que contiene `id`, `email` y `createdAt`; nunca incluye la
+contraseña ni su hash. Las credenciales inválidas responden siempre
+`401 Unauthorized` con el mismo mensaje genérico y no generan token. Un DTO
+inválido responde `400 Bad Request`.
+
+El payload del JWT contiene únicamente `sub` (el id del usuario) y su correo
+normalizado. El token está firmado, no cifrado: su payload se puede decodificar,
+así que no se deben incluir contraseñas, hashes ni otros datos confidenciales.
+`JWT_SECRET` es obligatorio y debe tener al menos 32 caracteres; guárdalo solo
+en `.env` local o en el entorno de despliegue. `JWT_EXPIRES_IN` define la
+vigencia y usa `15m` por defecto. Los valores de `.env.example` son plantillas,
+no secretos reales. En esta etapa aún no se protegen otras rutas con Bearer
+tokens.
+
+La columna `email` tiene una restricción única en PostgreSQL y `passwordHash`
+se mapea a `password_hash` y se excluye de las consultas normales. La sincronización
+automática del esquema solo está activa en desarrollo; antes de desplegar el
+registro en producción hay que añadir y aplicar una migración revisada para la
+tabla `users`.
+
+Ejemplo:
+
+```json
+{
+  "email": "persona@example.test",
+  "password": "Clave-practica-2026"
+}
+```
+
+Envía el cuerpo con `Content-Type: application/json` (en Postman: **Body** →
+**raw** → **JSON**). La contraseña debe tener al menos ocho caracteres; una
+clave de seis (`123456`) debe responder `400 Bad Request`.
+
+## Verificación de access tokens
+
+`GET /auth/me` requiere `Authorization: Bearer <accessToken>`. El servidor
+verifica firma y vencimiento antes de responder con `id` y `email`; un
+encabezado ausente o un token alterado responde `401 Unauthorized`. Esta
+demostración no aplica autenticación a las demás rutas.
 
 ## Deployment
 
