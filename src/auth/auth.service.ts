@@ -16,20 +16,24 @@ export class AuthService {
 
   async register(
     createUserDto: CreateUserDto,
-  ): Promise<Pick<User, 'id' | 'email' | 'createdAt'>> {
+  ): Promise<Pick<User, 'id' | 'email' | 'role' | 'createdAt'>> {
     const passwordHash = await hash(createUserDto.password, 12);
     return this.usersService.create(createUserDto.email, passwordHash);
   }
 
   async login(loginDto: LoginDto): Promise<{
     accessToken: string;
-    user: Pick<User, 'id' | 'email' | 'createdAt'>;
+    user: Pick<User, 'id' | 'email' | 'role' | 'createdAt'>;
   }> {
     const user = await this.validateCredentials(
       loginDto.email,
       loginDto.password,
     );
-    const payload: JwtPayload = { sub: user.id, email: user.email };
+    const payload: JwtPayload = {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+    };
 
     return {
       accessToken: await this.jwtService.signAsync(payload),
@@ -40,7 +44,7 @@ export class AuthService {
   private async validateCredentials(
     email: string,
     password: string,
-  ): Promise<Pick<User, 'id' | 'email' | 'createdAt'>> {
+  ): Promise<Pick<User, 'id' | 'email' | 'role' | 'createdAt'>> {
     const user = await this.usersService.findByEmailForLogin(email);
     const passwordMatches = user
       ? await compare(password, user.passwordHash)
@@ -53,6 +57,7 @@ export class AuthService {
     return {
       id: user.id,
       email: user.email,
+      role: user.role,
       createdAt: user.createdAt,
     };
   }

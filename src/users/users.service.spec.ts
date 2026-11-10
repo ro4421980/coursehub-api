@@ -1,6 +1,7 @@
 import { ConflictException } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity.js';
+import { UserRole } from './user-role.enum.js';
 import { UsersService } from './users.service.js';
 
 describe('UsersService', () => {
@@ -43,10 +44,12 @@ describe('UsersService', () => {
     expect(usersRepository.create).toHaveBeenCalledWith({
       email: 'user@example.test',
       passwordHash: 'bcrypt-hash',
+      role: UserRole.STUDENT,
     });
     expect(result).toEqual({
       id: 1,
       email: 'user@example.test',
+      role: UserRole.STUDENT,
       createdAt: new Date('2026-01-01T00:00:00.000Z'),
     });
     expect(result).not.toHaveProperty('passwordHash');

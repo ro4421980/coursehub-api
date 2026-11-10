@@ -1,9 +1,15 @@
+import { ForbiddenException } from '@nestjs/common';
+import { UserRole } from '../users/user-role.enum.js';
 import { CoursesService } from './courses.service';
 
 describe('CoursesService', () => {
   let service: CoursesService;
   const coursesRepository = {
     findAndCount: vi.fn(),
+    findOneBy: vi.fn(),
+    create: vi.fn((course) => course),
+    save: vi.fn(async (course) => course),
+    remove: vi.fn(async (course) => course),
   };
 
   beforeEach(() => {
@@ -73,6 +79,114 @@ describe('CoursesService', () => {
     expect(coursesRepository.findAndCount).toHaveBeenNthCalledWith(
       2,
       expect.objectContaining({ skip: 2, take: 2 }),
+    );
+  });
+
+  it('records the authenticated creator when creating a course', async () => {
+    const actor = {
+      id: 7,
+      email: 'teacher@example.test',
+      role: UserRole.TEACHER,
+    };
+    const dto = { title: 'NestJS', level: 'beginner' };
+
+    await service.create(dto, actor);
+
+    expect(coursesRepository.create).toHaveBeenCalledWith({
+      ...dto,
+      createdByUserId: actor.id,
+    });
+    expect(coursesRepository.save).toHaveBeenCalledOnce();
+  });
+
+  it('allows a teacher to update their own course', async () => {
+    const course = {
+      id: 3,
+      title: 'Original',
+      level: 'beginner',
+      createdByUserId: 7,
+    };
+    coursesRepository.findOneBy.mockResolvedValue(course);
+
+    const result = await service.update(
+      3,
+      { title: 'Updated' },
+      {
+        id: 7,
+        email: 'teacher@example.test',
+        role: UserRole.TEACHER,
+      },
+    );
+
+    expect(result.title).toBe('Updated');
+    expect(coursesRepository.save).toHaveBeenCalledWith(course);
+  });
+
+  it('rejects a teacher who does not own the course', async () => {
+    coursesRepository.findOneBy.mockResolvedValue({
+      id: 3,
+      title: 'Original',
+      level: 'beginner',
+      createdByUserId: 7,
+    });
+
+    await expect(
+      service.update(
+        3,
+        { title: 'Updated' },
+        {
+          id: 8,
+          email: 'other-teacher@example.test',
+          role: UserRole.TEACHER,
+        },
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(coursesRepository.save).not.toHaveBeenCalled();
+  });
+
+  it('rejects students even when they own the course', async () => {
+    coursesRepository.findOneBy.mockResolvedValue({
+      id: 3,
+      title: 'Original',
+      level: 'beginner',
+      createdByUserId: 7,
+    });
+
+    await expect(
+      service.update(
+        3,
+        { title: 'Updated' },
+        {
+          id: 7,
+          email: 'student@example.test',
+          role: UserRole.STUDENT,
+        },
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(coursesRepository.save).not.toHaveBeenCalled();
+  });
+
+  it('allows admins to update courses owned by other users', async () => {
+    const course = {
+      id: 3,
+      title: 'Original',
+      level: 'beginner',
+      createdByUserId: 7,
+    };
+    coursesRepository.findOneBy.mockResolvedValue(course);
+
+    await service.update(
+      3,
+      { title: 'Admin update' },
+      {
+        id: 1,
+        email: 'admin@example.test',
+        role: UserRole.ADMIN,
+      },
+    );
+
+    expect(coursesRepository.save).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'Admin update' }),
     );
   });
 });

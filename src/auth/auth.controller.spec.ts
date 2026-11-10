@@ -6,10 +6,14 @@ import {
 } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { JwtModule, JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
+import { PassportModule } from '@nestjs/passport';
 import request from 'supertest';
-import { AccessTokenGuard } from './access-token.guard.js';
+import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
+import { JwtStrategy } from './strategies/jwt.strategy.js';
 import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
+import { UserRole } from '../users/user-role.enum.js';
 
 describe('AuthController', () => {
   const jwtSecret = 'test-secret-with-at-least-32-characters';
@@ -24,6 +28,7 @@ describe('AuthController', () => {
     authService.register.mockResolvedValue({
       id: 1,
       email: 'prueba@correo.com',
+      role: UserRole.STUDENT,
       createdAt: '2026-01-01T00:00:00.000Z',
     });
     authService.login.mockResolvedValue({
@@ -31,15 +36,24 @@ describe('AuthController', () => {
       user: {
         id: 1,
         email: 'prueba@correo.com',
+        role: UserRole.STUDENT,
         createdAt: '2026-01-01T00:00:00.000Z',
       },
     });
 
     const module = await Test.createTestingModule({
-      imports: [JwtModule.register({ secret: jwtSecret })],
+      imports: [
+        PassportModule.register({}),
+        JwtModule.register({ secret: jwtSecret }),
+      ],
       controllers: [AuthController],
       providers: [
-        AccessTokenGuard,
+        JwtAuthGuard,
+        JwtStrategy,
+        {
+          provide: ConfigService,
+          useValue: { getOrThrow: () => jwtSecret },
+        },
         { provide: AuthService, useValue: authService },
       ],
     }).compile();
@@ -74,6 +88,7 @@ describe('AuthController', () => {
     expect(response.body).toEqual({
       id: 1,
       email: 'prueba@correo.com',
+      role: UserRole.STUDENT,
       createdAt: '2026-01-01T00:00:00.000Z',
     });
     expect(response.body).not.toHaveProperty('passwordHash');
@@ -88,6 +103,19 @@ describe('AuthController', () => {
     await request(app.getHttpServer())
       .post('/auth/register')
       .send({ email: 'prueba@correo.com', password: '1234567' })
+      .expect(400);
+
+    expect(authService.register).not.toHaveBeenCalled();
+  });
+
+  it('does not allow the client to choose an elevated role at registration', async () => {
+    await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({
+        email: 'prueba@correo.com',
+        password: 'clave123',
+        role: UserRole.ADMIN,
+      })
       .expect(400);
 
     expect(authService.register).not.toHaveBeenCalled();
@@ -121,6 +149,7 @@ describe('AuthController', () => {
       user: {
         id: 1,
         email: 'prueba@correo.com',
+        role: UserRole.STUDENT,
         createdAt: '2026-01-01T00:00:00.000Z',
       },
     });
@@ -184,11 +213,19 @@ describe('AuthController', () => {
     await request(app.getHttpServer()).get('/auth/me').expect(401);
   });
 
+  it('returns 401 for /auth/me with a non-Bearer authorization scheme', async () => {
+    await request(app.getHttpServer())
+      .get('/auth/me')
+      .set('Authorization', 'Basic dXNlcjpwYXNz')
+      .expect(401);
+  });
+
   it('returns 401 for /auth/me with a tampered access token', async () => {
     const jwtService = app.get(JwtService);
     const token = await jwtService.signAsync({
       sub: 1,
       email: 'prueba@correo.com',
+      role: UserRole.STUDENT,
     });
     const [header, payload, signature] = token.split('.');
     const tamperedToken = `${header}.${payload}.${signature[0] === 'a' ? 'b' : 'a'}${signature.slice(1)}`;
@@ -199,11 +236,39 @@ describe('AuthController', () => {
       .expect(401);
   });
 
+  it('returns 401 for /auth/me with an expired access token', async () => {
+    const jwtService = app.get(JwtService);
+    const token = await jwtService.signAsync(
+      { sub: 1, email: 'prueba@correo.com' },
+      { expiresIn: '-1s' },
+    );
+
+    await request(app.getHttpServer())
+      .get('/auth/me')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(401);
+  });
+
+  it('returns 401 when the token contains a role outside the closed enum', async () => {
+    const jwtService = app.get(JwtService);
+    const token = await jwtService.signAsync({
+      sub: 1,
+      email: 'prueba@correo.com',
+      role: 'administrator',
+    });
+
+    await request(app.getHttpServer())
+      .get('/auth/me')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(401);
+  });
+
   it('returns the verified identity for /auth/me with a valid access token', async () => {
     const jwtService = app.get(JwtService);
     const token = await jwtService.signAsync({
       sub: 1,
       email: 'prueba@correo.com',
+      role: UserRole.STUDENT,
     });
 
     const response = await request(app.getHttpServer())
@@ -214,6 +279,7 @@ describe('AuthController', () => {
     expect(response.body).toEqual({
       id: 1,
       email: 'prueba@correo.com',
+      role: UserRole.STUDENT,
     });
   });
 });

@@ -2,6 +2,7 @@ import { ConflictException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity.js';
+import { UserRole } from './user-role.enum.js';
 
 @Injectable()
 export class UsersService {
@@ -21,7 +22,7 @@ export class UsersService {
   async create(
     email: string,
     passwordHash: string,
-  ): Promise<Pick<User, 'id' | 'email' | 'createdAt'>> {
+  ): Promise<Pick<User, 'id' | 'email' | 'role' | 'createdAt'>> {
     email = email.trim().toLowerCase();
     const emailExists = await this.usersRepository.findOneBy({ email });
     if (emailExists) {
@@ -33,6 +34,7 @@ export class UsersService {
     const user = this.usersRepository.create({
       email,
       passwordHash,
+      role: UserRole.STUDENT,
     });
 
     try {
@@ -40,6 +42,7 @@ export class UsersService {
       return {
         id: savedUser.id,
         email: savedUser.email,
+        role: savedUser.role,
         createdAt: savedUser.createdAt,
       };
     } catch (error) {

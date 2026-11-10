@@ -8,14 +8,11 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import type { Request } from 'express';
 import { LoginDto } from './dto/login.dto.js';
 import { CreateUserDto } from '../users/dto/create-user.dto.js';
 import { AuthService } from './auth.service.js';
-import { AccessTokenGuard } from './access-token.guard.js';
-import type { JwtPayload } from './types/jwt-payload.type.js';
-
-type AuthenticatedRequest = Request & { user: JwtPayload };
+import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
+import type { RequestWithUser } from './types/request-with-user.type.js';
 
 @Controller('auth')
 export class AuthController {
@@ -33,9 +30,8 @@ export class AuthController {
   }
 
   @Get('me')
-  @UseGuards(AccessTokenGuard)
-  me(@Req() req: AuthenticatedRequest) {
-    return { id: req.user.sub, email: req.user.email };
+  @UseGuards(JwtAuthGuard)
+  me(@Req() request: RequestWithUser) {
+    return request.user;
   }
 }
-

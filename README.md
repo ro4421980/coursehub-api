@@ -121,7 +121,7 @@ Si un parámetro no cumple las reglas (por ejemplo `page=0`, `limit=200` o
 exactamente como se envió y debe tener entre 8 y 72 bytes, compatible con el
 límite de bcrypt. El servidor guarda únicamente `password_hash`, calculado con
 bcrypt y costo 12. La respuesta `201 Created` incluye `id`, `email` y
-`createdAt`, nunca la contraseña ni su hash. Un correo repetido responde
+`role` y `createdAt`, nunca la contraseña ni su hash. Un correo repetido responde
 `409 Conflict`; una solicitud inválida responde `400 Bad Request`.
 
 `POST /auth/login` valida `LoginDto`, recupera explícitamente `passwordHash`
@@ -130,16 +130,85 @@ autenticar correctamente, firma un JWT y responde `200 OK` con `accessToken`
 y un objeto `user` que contiene `id`, `email` y `createdAt`; nunca incluye la
 contraseña ni su hash. Las credenciales inválidas responden siempre
 `401 Unauthorized` con el mismo mensaje genérico y no generan token. Un DTO
-inválido responde `400 Bad Request`.
+inválido responde `400 Bad Request`. La respuesta del login incluye también el
+rol de la cuenta.
 
-El payload del JWT contiene únicamente `sub` (el id del usuario) y su correo
-normalizado. El token está firmado, no cifrado: su payload se puede decodificar,
-así que no se deben incluir contraseñas, hashes ni otros datos confidenciales.
+El payload del JWT contiene `sub` (el id del usuario), su correo normalizado y
+su rol. El token está firmado, no cifrado: su payload se puede decodificar, así
+que no se deben incluir contraseñas, hashes ni otros datos confidenciales.
 `JWT_SECRET` es obligatorio y debe tener al menos 32 caracteres; guárdalo solo
 en `.env` local o en el entorno de despliegue. `JWT_EXPIRES_IN` define la
 vigencia y usa `15m` por defecto. Los valores de `.env.example` son plantillas,
-no secretos reales. En esta etapa aún no se protegen otras rutas con Bearer
-tokens.
+no secretos reales.
+
+La estrategia `src/auth/strategies/jwt.strategy.ts` usa Passport y extrae el
+token desde `Authorization: Bearer <accessToken>`, comprueba la firma y rechaza
+tokens expirados. `src/auth/guards/jwt-auth.guard.ts` aplica la autenticación
+en los controladores. Sin token, con otro esquema, firma inválida o expiración
+responde `401 Unauthorized`. `GET /auth/me` y `POST /courses` requieren JWT;
+la creación de cursos además conserva la validación global del
+`CreateCourseDto` y responde `400 Bad Request` si el cuerpo es inválido. La
+estrategia valida el rol firmado y expone en `req.user` `{ id, email, role }`.
+
+### Roles y autorización
+
+`UserRole` limita los valores a `admin`, `teacher` y `student`. Las cuentas
+nuevas reciben `student`, tanto por el valor predeterminado de la columna como
+porque el registro no acepta un rol enviado por el cliente. Para la práctica,
+asigna los roles únicamente en la base de datos local después de identificar
+cuentas concretas:
+
+```sql
+UPDATE users SET role = 'admin' WHERE email = 'admin-local@example.test';
+UPDATE users SET role = 'teacher' WHERE email = 'teacher-local@example.test';
+```
+
+`@Roles()` declara la política de una ruta y `RolesGuard` la aplica después de
+`JwtAuthGuard`: un token ausente, inválido o expirado responde `401`; una
+identidad válida sin permiso responde `403`. `DELETE /courses/:id` exige el
+rol `admin`. `PATCH /courses/:id` admite `admin` o `teacher`; además, el
+servicio solo permite que el docente modifique un curso cuyo
+`created_by_user_id` coincide con su id autenticado. Un administrador puede
+modificar cualquier curso. El id del propietario se toma de `req.user` al crear
+el curso, nunca del cuerpo enviado por el cliente. Los cursos anteriores a
+esta práctica pueden no tener propietario y no se pueden editar por un
+docente hasta asignarles uno de forma controlada.
+
+La identidad mínima que debe exponer la autenticación para estas reglas es
+`{ id, role }`: `id` identifica al propietario que se compara con el curso y
+`role` decide si puede operar sobre cualquier recurso o si necesita ser su
+propietario. Se conserva `email` para identificar la cuenta en el resto de la
+API. En producción, los cambios de esquema requieren una migración revisada;
+`synchronize` solo está habilitado en desarrollo.
+
+### Tabla de rutas
+
+| Ruta | Acceso actual |
+| --- | --- |
+| `GET /` | Pública |
+| `GET /welcome` | Pública |
+| `POST /auth/register` | Pública |
+| `POST /auth/login` | Pública |
+| `GET /auth/me` | Requiere JWT |
+| `GET /courses` | Pública |
+| `GET /courses/:id` | Pública |
+| `POST /courses` | Requiere JWT |
+| `PATCH /courses/:id` | Administrador o docente propietario |
+| `DELETE /courses/:id` | Administrador |
+| `GET /students` | Pública |
+| `GET /students/:id` | Pública |
+| `POST /students` | Pública |
+| `PATCH /students/:id` | Pública |
+| `DELETE /students/:id` | Pública |
+| `PATCH /students/:id/status` | Pública |
+| `POST /enrollments` | Pública |
+| `GET /enrollments` | Pública |
+| `DELETE /enrollments/:id` | Pública |
+
+El registro y el inicio de sesión son públicos porque deben poder usarse antes
+de obtener un token. La consulta de cursos también es pública para permitir
+explorar el catálogo; crear cursos requiere JWT. Las demás rutas permanecen
+públicas hasta que se definan sus requisitos de autorización.
 
 La columna `email` tiene una restricción única en PostgreSQL y `passwordHash`
 se mapea a `password_hash` y se excluye de las consultas normales. La sincronización
@@ -162,10 +231,45 @@ clave de seis (`123456`) debe responder `400 Bad Request`.
 
 ## Verificación de access tokens
 
-`GET /auth/me` requiere `Authorization: Bearer <accessToken>`. El servidor
-verifica firma y vencimiento antes de responder con `id` y `email`; un
-encabezado ausente o un token alterado responde `401 Unauthorized`. Esta
-demostración no aplica autenticación a las demás rutas.
+Para obtener un token, registra una cuenta si hace falta y llama a
+`POST /auth/login`. Copia el valor `accessToken` de la respuesta en la variable
+de tu cliente HTTP; no lo guardes en el código ni en Git. Un JWT válido tiene
+tres secciones separadas por puntos. En Postman, configura la autorización como
+**Bearer Token** para enviar `Authorization: Bearer <accessToken>`.
+
+Verifica `GET /auth/me` con estos cinco casos: sin encabezado (401), esquema
+distinto de Bearer (401), token con firma alterada (401), token expirado (401)
+y token válido (200 con `id`, `email` y `role`). Para las acciones sobre cursos,
+comprueba la matriz:
+
+| Acción | Resultado |
+| --- | --- |
+| PATCH o DELETE sin token | 401 |
+| PATCH como estudiante | 403 |
+| PATCH como docente ajeno | 403 |
+| PATCH como docente propietario | 200 |
+| PATCH o DELETE como administrador | 200 |
+| DELETE como estudiante o docente | 403 |
+
+Para modificar un curso de docente, el propietario debe coincidir con el id del
+token; un id de propietario enviado en el cuerpo no participa en la decisión.
+`POST /courses` con token válido y cuerpo inválido responde `400`.
+
+Las pruebas automatizadas de `src/auth/auth.controller.spec.ts` y
+`src/courses/courses.controller.spec.ts` cubren estos casos. Para entregar
+evidencia visual, captura en el cliente HTTP cada solicitud junto con su código
+de respuesta y, para el caso exitoso, el cuerpo de respuesta. No incluyas
+contraseñas ni tokens reales en las capturas.
+
+Como evidencia de la sesión, toma capturas de: (1) las dependencias Passport en
+`package.json`; (2) `JwtPayload` y `AuthenticatedUser`; (3) `JwtStrategy`;
+(4) `JwtAuthGuard`; (5) los imports y providers de `AuthModule`; (6)
+`GET /auth/me` con JWT válido; (7) `POST /courses` protegido; (8) la respuesta
+de login y el token con sus tres segmentos, ocultando su valor; (9) el resultado
+de la matriz de autorización de PATCH y DELETE; (10) los cinco resultados de
+`/auth/me`; y (11) la tabla de rutas de esta sección. Para los casos 9 y 10, una
+captura del reporte de pruebas automatizadas también muestra los resultados sin
+revelar tokens.
 
 ## Deployment
 

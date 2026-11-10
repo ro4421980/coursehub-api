@@ -1,6 +1,7 @@
 import { compare, getRounds, hash } from 'bcryptjs';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service.js';
+import { UserRole } from '../users/user-role.enum.js';
 import { AuthService } from './auth.service.js';
 
 describe('AuthService', () => {
@@ -30,6 +31,7 @@ describe('AuthService', () => {
     usersService.create.mockImplementation(async () => ({
       id: 1,
       email: dto.email,
+      role: UserRole.STUDENT,
       createdAt: new Date('2026-01-01T00:00:00.000Z'),
     }));
 
@@ -45,6 +47,7 @@ describe('AuthService', () => {
     expect(result).toEqual({
       id: 1,
       email: dto.email,
+      role: UserRole.STUDENT,
       createdAt: new Date('2026-01-01T00:00:00.000Z'),
     });
     expect(result).not.toHaveProperty('password');
@@ -56,6 +59,7 @@ describe('AuthService', () => {
     const user = {
       id: 2,
       email: 'user@example.test',
+      role: UserRole.TEACHER,
       createdAt: new Date('2026-01-01T00:00:00.000Z'),
       passwordHash,
     };
@@ -71,12 +75,14 @@ describe('AuthService', () => {
       user: {
         id: user.id,
         email: user.email,
+        role: user.role,
         createdAt: user.createdAt,
       },
     });
     expect(jwtService.signAsync).toHaveBeenCalledWith({
       sub: user.id,
       email: user.email,
+      role: user.role,
     });
     expect(result.user).not.toHaveProperty('passwordHash');
     expect(result.user).not.toHaveProperty('password');
