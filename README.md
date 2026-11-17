@@ -34,13 +34,108 @@ $ npm install
 ## Configuration
 
 Copy `.env.example` to `.env` and set the database connection values for your
-environment. `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER` and `DB_PASSWORD` are
-required. `PORT` defaults to `3000` and `NODE_ENV` defaults to `development`.
-The application validates these values before connecting to PostgreSQL.
+environment. `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` and
+`CORS_ORIGINS` are required. `PORT` defaults to `3000` and `NODE_ENV` defaults
+to `development`. The application validates these values before connecting to
+PostgreSQL and before enabling CORS.
 
 The local `.env` file is ignored by Git. Keep credentials there or in your
 deployment environment, and never commit real secrets. `.env.example` is only
 a template and contains no working credentials.
+
+## Base de datos local con Docker
+
+`docker-compose.yml` levanta PostgreSQL usando los mismos valores de `.env`
+(`DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_PORT`), así que no hay que duplicar
+credenciales. El puerto del contenedor se publica en el host con `DB_PORT`.
+
+```bash
+# 1. Copia el archivo de ejemplo si aún no tienes .env
+$ copy .env.example .env        # PowerShell
+
+# 2. Levanta PostgreSQL en segundo plano
+$ npm run db:up
+
+# 3. Verifica que esté saludable
+$ docker compose ps            # STATE debe ser "healthy"
+
+# 4. Arranca la API (synchronize crea las tablas en desarrollo)
+$ npm run start:dev
+
+# 5. Detener la base sin perder los datos
+$ npm run db:down
+```
+
+Para borrar también los datos: `docker compose down -v` (elimina el volumen
+`coursehub-pgdata`).
+
+Si cambiaron las credenciales en `.env` y el contenedor ya existía, hay que
+recrear el volumen: `docker compose down -v && npm run db:up`.
+
+### Conexión desde DBeaver
+
+| Campo | Valor |
+| --- | --- |
+| Motor | PostgreSQL |
+| Host | `localhost` |
+| Puerto | `DB_PORT` del `.env` (por ejemplo `5434`) |
+| Base de datos | `DB_NAME` (`coursehub`) |
+| Usuario | `DB_USER` (`postgres`) |
+| Contraseña | `DB_PASSWORD` del `.env` |
+
+El host escucha en `localhost`, no dentro del contenedor, por lo que DBeaver
+debe conectarse a `localhost:<DB_PORT>`.
+
+## Seguridad de la API
+
+### CORS restringido por entorno
+
+`CORS_ORIGINS` es obligatorio y contiene la lista separada por comas de los
+orígenes exactos autorizados para el entorno actual. No se usa `*`.
+
+```dotenv
+# Desarrollo: frontend local de Vite y de Angular
+CORS_ORIGINS=http://localhost:5173,http://localhost:4200
+```
+
+`src/main.ts` pasa esa lista a `app.enableCors()`. El navegador solo permite
+leer la respuesta cuando el origen de la petición coincide exactamente con uno
+de los valores configurados; cualquier otro origen no recibe las cabeceras
+`Access-Control-*` y la petición falla en el cliente. En producción,
+`CORS_ORIGINS` debe contener únicamente el dominio del frontend publicado, por
+ejemplo `CORS_ORIGINS=https://app.example.com`.
+
+### Límite de solicitudes en `/auth/login`
+
+`ThrottlerModule` aplica un límite global de 100 solicitudes por minuto por
+dirección IP. `POST /auth/login` tiene un límite más estricto de **5 intentos
+por minuto por IP** mediante `@Throttle({ default: { limit: 5, ttl: 60_000 } })`
+en `src/auth/auth.controller.ts`. Al superarlo, la API responde
+`429 Too Many Requests` sin ejecutar la validación de credenciales.
+
+El almacenamiento del limitador es en memoria, adecuado para una sola
+instancia. Si se despliegan varias réplicas, hay que usar un almacenamiento
+compartido (por ejemplo Redis). Detrás de un proxy inverso, configure
+`trust proxy` para que el límite se aplique a la IP real del cliente y no a la
+del proxy.
+
+### HTTPS/TLS como requisito de producción
+
+**En producción la API debe publicarse únicamente sobre HTTPS/TLS.** No se debe
+exponer tráfico HTTP en claro ni aceptar tokens JWT por conexiones sin cifrar.
+La terminación TLS se realiza en el proxy inverso o balanceador (Nginx, Caddy,
+Traefik o el balanceador del proveedor), que redirige `http://` a `https://`,
+presenta un certificado válido y reenvía la petición a Nest por la red interna.
+En desarrollo local se permite HTTP sobre `localhost`.
+
+Checklist mínimo de despliegue:
+
+- Certificado TLS válido y renovación automática.
+- Redirección permanente de `80` a `443`.
+- HSTS habilitado en el proxy.
+- `NODE_ENV=production` (desactiva `synchronize`).
+- `CORS_ORIGINS` limitado al dominio real del frontend.
+- Secretos (`JWT_SECRET`, `DB_PASSWORD`) fuera del repositorio.
 
 ## Evidencia Etapa 2: conexión TypeORM por entorno
 
@@ -188,7 +283,7 @@ API. En producción, los cambios de esquema requieren una migración revisada;
 | `GET /` | Pública |
 | `GET /welcome` | Pública |
 | `POST /auth/register` | Pública |
-| `POST /auth/login` | Pública |
+| `POST /auth/login` | Pública, límite de 5 solicitudes por minuto por IP |
 | `GET /auth/me` | Requiere JWT |
 | `GET /courses` | Pública |
 | `GET /courses/:id` | Pública |
