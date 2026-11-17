@@ -1,10 +1,16 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Course } from '../entity/course.entity.js';
 
 /** @typedef {import('typeorm').Repository<Course>} CourseRepository */
 /** @typedef {import('./dto/create-courses.dto.js').CreateCourseDto} CreateCourseDto */
 /** @typedef {import('./dto/courses-query.dto.js').CoursesQueryDto} CoursesQueryDto */
+/** @typedef {import('../auth/types/jwt-payload.type.js').AuthenticatedUser} AuthenticatedUser */
+/** @typedef {import('../users/user-role.enum.js').UserRole} UserRole */
 
 export class CoursesService {
   /** @param {CourseRepository} coursesRepository */
@@ -42,15 +48,34 @@ export class CoursesService {
     return course;
   }
 
-  /** @param {CreateCourseDto} dto @returns {Promise<Course>} */
-  create(dto) {
-    const course = this.coursesRepository.create(dto);
+  /**
+   * @param {CreateCourseDto} dto
+   * @param {AuthenticatedUser} actor
+   * @returns {Promise<Course>}
+   */
+  create(dto, actor) {
+    const course = this.coursesRepository.create({
+      ...dto,
+      createdByUserId: actor.id,
+    });
     return this.coursesRepository.save(course);
   }
 
-  /** @param {number} id @param {Partial<Pick<Course, 'title' | 'level'>>} dto @returns {Promise<Course>} */
-  async update(id, dto) {
+  /**
+   * @param {number} id
+   * @param {Partial<Pick<Course, 'title' | 'level'>>} dto
+   * @param {AuthenticatedUser} actor
+   * @returns {Promise<Course>}
+   */
+  async update(id, dto, actor) {
     const course = await this.findOne(id);
+    if (
+      actor.role !== 'admin' &&
+      (actor.role !== 'teacher' || course.createdByUserId !== actor.id)
+    ) {
+      throw new ForbiddenException('You can only update your own courses');
+    }
+
     Object.assign(course, dto);
     return this.coursesRepository.save(course);
   }
