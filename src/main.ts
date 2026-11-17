@@ -15,6 +15,19 @@ async function bootstrap() {
   );
 
   const config = app.get(ConfigService);
+  const corsOrigins = config
+    .getOrThrow<string>('CORS_ORIGINS')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+  app.enableCors({
+    origin: corsOrigins,
+    methods: ['GET', 'POST', 'PATCH', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    maxAge: 86400,
+  });
+
   const port = Number(config.getOrThrow<string>('PORT'));
   await app.listen(port);
 }

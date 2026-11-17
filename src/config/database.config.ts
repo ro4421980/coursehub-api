@@ -14,6 +14,7 @@ export const environmentValidationSchema = Joi.object({
   DB_PASSWORD: Joi.string().required(),
   JWT_SECRET: Joi.string().min(32).required(),
   JWT_EXPIRES_IN: Joi.string().default('15m'),
+  CORS_ORIGINS: Joi.string().trim().min(1).required(),
 }).prefs({ abortEarly: false });
 
 export function createTypeOrmOptions(

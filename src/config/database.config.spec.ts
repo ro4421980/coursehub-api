@@ -76,6 +76,7 @@ describe('database configuration', () => {
       DB_PASSWORD: 'test_only_placeholder',
       JWT_SECRET: 'test-only-secret-with-at-least-32-characters',
       JWT_EXPIRES_IN: '15m',
+      CORS_ORIGINS: 'http://localhost:5173',
     };
     const developmentText = Object.entries(developmentValues)
       .map(([key, value]) => `${key}=${value}`)
