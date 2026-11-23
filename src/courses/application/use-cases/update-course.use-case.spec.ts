@@ -1,5 +1,5 @@
 import { UserRole } from '../../../users/user-role.enum.js';
-import type { Course, NewCourse } from '../../domain/course.js';
+import type { Course, CourseChanges, NewCourse } from '../../domain/course.js';
 import {
   CourseAccessDeniedError,
   CourseNotFoundError,
@@ -7,11 +7,29 @@ import {
 import type { CourseRepository } from '../ports/course.repository.js';
 import { UpdateCourseUseCase } from './update-course.use-case.js';
 
+const COURSE_ID = 5;
+const OWNER_ID = 2;
+
+function makeCourse(overrides: Partial<Course> = {}): Course {
+  return {
+    id: COURSE_ID,
+    title: 'NestJS',
+    level: 'beginner',
+    createdByUserId: OWNER_ID,
+    ...overrides,
+  };
+}
+
+/**
+ * Simulated repository: it implements the application port with an array.
+ * There is no TypeORM, no SQL, no PostgreSQL and no network. Each test gets a
+ * fresh instance, so the order of execution cannot affect the result.
+ */
 class InMemoryCourseRepository implements CourseRepository {
-  constructor(private courses: Course[] = []) {}
+  constructor(private courses: Course[] = [makeCourse()]) {}
 
   async findPage() {
-    return { items: this.courses, total: this.courses.length };
+    return { items: [...this.courses], total: this.courses.length };
   }
 
   async findById(id: number): Promise<Course | null> {
@@ -19,7 +37,7 @@ class InMemoryCourseRepository implements CourseRepository {
   }
 
   async create(course: NewCourse): Promise<Course> {
-    const created = { id: this.courses.length + 1, ...course };
+    const created: Course = { id: this.courses.length + 1, ...course };
     this.courses.push(created);
     return created;
   }
@@ -27,10 +45,11 @@ class InMemoryCourseRepository implements CourseRepository {
   async save(course: Course): Promise<Course> {
     const index = this.courses.findIndex((item) => item.id === course.id);
 
-    if (index >= 0) {
-      this.courses[index] = course;
+    if (index < 0) {
+      throw new Error(`Cannot save unknown course ${course.id}`);
     }
 
+    this.courses[index] = course;
     return course;
   }
 
@@ -39,88 +58,143 @@ class InMemoryCourseRepository implements CourseRepository {
   }
 }
 
-function createRepository(): InMemoryCourseRepository {
-  return new InMemoryCourseRepository([
-    {
-      id: 5,
-      title: 'NestJS',
-      level: 'beginner',
-      createdByUserId: 2,
-    },
-  ]);
+function createHarness() {
+  const repository = new InMemoryCourseRepository();
+  const save = vi.spyOn(repository, 'save');
+
+  return {
+    repository,
+    save,
+    useCase: new UpdateCourseUseCase(repository),
+  };
 }
 
 describe('UpdateCourseUseCase', () => {
-  it('allows a teacher to update their own course', async () => {
-    const repository = createRepository();
-    const useCase = new UpdateCourseUseCase(repository);
+  it('updates and persists the course when the teacher owns it', async () => {
+    const { repository, save, useCase } = createHarness();
 
     const result = await useCase.execute({
-      courseId: 5,
-      changes: { title: 'NestJS avanzado' },
-      actor: { id: 2, role: UserRole.TEACHER },
+      courseId: COURSE_ID,
+      changes: { title: 'NestJS avanzado', level: 'advanced' },
+      actor: { id: OWNER_ID, role: UserRole.TEACHER },
     });
 
-    expect(result.title).toBe('NestJS avanzado');
-    await expect(repository.findById(5)).resolves.toMatchObject({
+    expect(result).toMatchObject({
+      id: COURSE_ID,
       title: 'NestJS avanzado',
+      level: 'advanced',
+      createdByUserId: OWNER_ID,
+    });
+    expect(save).toHaveBeenCalledTimes(1);
+    expect(save).toHaveBeenCalledWith(result);
+    await expect(repository.findById(COURSE_ID)).resolves.toMatchObject({
+      title: 'NestJS avanzado',
+      level: 'advanced',
+    });
+  });
+
+  it('keeps fields that the partial update does not mention', async () => {
+    const { useCase } = createHarness();
+
+    const result = await useCase.execute({
+      courseId: COURSE_ID,
+      changes: { title: 'Solo cambia el título' },
+      actor: { id: OWNER_ID, role: UserRole.TEACHER },
+    });
+
+    expect(result).toMatchObject({
+      title: 'Solo cambia el título',
+      level: 'beginner',
+      createdByUserId: OWNER_ID,
     });
   });
 
   it('rejects a teacher who does not own the course', async () => {
-    const repository = createRepository();
-    const save = vi.spyOn(repository, 'save');
-    const useCase = new UpdateCourseUseCase(repository);
+    const { repository, save, useCase } = createHarness();
 
-    await expect(
-      useCase.execute({
-        courseId: 5,
-        changes: { title: 'Changed by another teacher' },
-        actor: { id: 8, role: UserRole.TEACHER },
-      }),
-    ).rejects.toBeInstanceOf(CourseAccessDeniedError);
+    const attempt = useCase.execute({
+      courseId: COURSE_ID,
+      changes: { title: 'Cambio ajeno' },
+      actor: { id: 8, role: UserRole.TEACHER },
+    });
 
+    await expect(attempt).rejects.toBeInstanceOf(CourseAccessDeniedError);
+    await expect(attempt).rejects.toThrow(
+      'You can only update your own courses',
+    );
     expect(save).not.toHaveBeenCalled();
-    await expect(repository.findById(5)).resolves.toMatchObject({
+    await expect(repository.findById(COURSE_ID)).resolves.toMatchObject({
       title: 'NestJS',
     });
   });
 
-  it('rejects students even when they own the course', async () => {
-    const repository = createRepository();
-    const useCase = new UpdateCourseUseCase(repository);
+  it('rejects a student even when the student id matches the owner', async () => {
+    const { repository, save, useCase } = createHarness();
 
     await expect(
       useCase.execute({
-        courseId: 5,
-        changes: { title: 'Changed by student' },
-        actor: { id: 2, role: UserRole.STUDENT },
+        courseId: COURSE_ID,
+        changes: { title: 'Cambio de estudiante' },
+        actor: { id: OWNER_ID, role: UserRole.STUDENT },
       }),
     ).rejects.toBeInstanceOf(CourseAccessDeniedError);
+
+    expect(save).not.toHaveBeenCalled();
+    await expect(repository.findById(COURSE_ID)).resolves.toMatchObject({
+      title: 'NestJS',
+    });
   });
 
   it('allows an admin to update a course owned by someone else', async () => {
-    const repository = createRepository();
-    const useCase = new UpdateCourseUseCase(repository);
+    const { save, useCase } = createHarness();
 
     const result = await useCase.execute({
-      courseId: 5,
-      changes: { title: 'Admin update' },
+      courseId: COURSE_ID,
+      changes: { title: 'Actualización del admin' },
       actor: { id: 1, role: UserRole.ADMIN },
     });
 
-    expect(result.title).toBe('Admin update');
+    expect(result).toMatchObject({
+      title: 'Actualización del admin',
+      createdByUserId: OWNER_ID,
+    });
+    expect(save).toHaveBeenCalledTimes(1);
   });
 
-  it('throws a domain error when the course does not exist', async () => {
-    const useCase = new UpdateCourseUseCase(createRepository());
+  it('reports a missing course before applying the authorization rule', async () => {
+    const { repository, save, useCase } = createHarness();
+    const findById = vi.spyOn(repository, 'findById');
 
-    await expect(
-      useCase.execute({
-        courseId: 999,
-        changes: { title: 'Missing' },
-        actor: { id: 1, role: UserRole.ADMIN },
-      }),
-    ).rejects.toBeInstanceOf(CourseNotFoundError);
+    const attempt = useCase.execute({
+      courseId: 999,
+      changes: { title: 'No existe' },
+      actor: { id: 1, role: UserRole.ADMIN },
+    });
+
+    await expect(attempt).rejects.toBeInstanceOf(CourseNotFoundError);
+    await expect(attempt).rejects.toThrow('Course 999 not found');
+    expect(findById).toHaveBeenCalledWith(999);
+    expect(save).not.toHaveBeenCalled();
+  });
+
+  it('cannot change the id or the owner through the update payload', async () => {
+    const { useCase } = createHarness();
+    const hostileChanges = {
+      title: 'Título legítimo',
+      id: 77,
+      createdByUserId: 99,
+    } as unknown as CourseChanges;
+
+    const result = await useCase.execute({
+      courseId: COURSE_ID,
+      changes: hostileChanges,
+      actor: { id: OWNER_ID, role: UserRole.TEACHER },
+    });
+
+    expect(result).toMatchObject({
+      id: COURSE_ID,
+      title: 'Título legítimo',
+      createdByUserId: OWNER_ID,
+    });
   });
 });

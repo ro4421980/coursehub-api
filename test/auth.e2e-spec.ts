@@ -9,13 +9,17 @@ import { JwtModule, JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { PassportModule } from '@nestjs/passport';
 import request from 'supertest';
-import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
-import { JwtStrategy } from './strategies/jwt.strategy.js';
-import { AuthController } from './auth.controller.js';
-import { AuthService } from './auth.service.js';
-import { UserRole } from '../users/user-role.enum.js';
+import { JwtAuthGuard } from '../src/auth/guards/jwt-auth.guard.js';
+import { JwtStrategy } from '../src/auth/strategies/jwt.strategy.js';
+import { AuthController } from '../src/auth/auth.controller.js';
+import { AuthService } from '../src/auth/auth.service.js';
+import { UserRole } from '../src/users/user-role.enum.js';
 
-describe('AuthController', () => {
+/**
+ * HTTP adapter integration: guards, pipes and controller together. This file
+ * uses an in-process server and must not be part of the Week 12 unit suite.
+ */
+describe('AuthController (HTTP integration)', () => {
   const jwtSecret = 'test-secret-with-at-least-32-characters';
   let app: INestApplication;
   const authService = {
