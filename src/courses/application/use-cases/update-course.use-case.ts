@@ -44,7 +44,16 @@ export class UpdateCourseUseCase {
       throw new CourseAccessDeniedError();
     }
 
-    Object.assign(course, input.changes);
+    // Copy only fields that belong to the update contract. `id` and
+    // `createdByUserId` are identity data and can never be changed by a PATCH,
+    // even if a caller bypasses the DTO validation layer.
+    if (input.changes.title !== undefined) {
+      course.title = input.changes.title;
+    }
+
+    if (input.changes.level !== undefined) {
+      course.level = input.changes.level;
+    }
 
     return this.courses.save(course);
   }

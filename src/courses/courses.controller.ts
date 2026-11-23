@@ -16,6 +16,7 @@ import { Roles } from '../auth/decorators/roles.decorator.js';
 import { RolesGuard } from '../auth/guards/roles.guard.js';
 import type { RequestWithUser } from '../auth/types/request-with-user.type.js';
 import { UserRole } from '../users/user-role.enum.js';
+import type { CourseChanges } from './domain/course.js';
 import { CreateCourseUseCase } from './application/use-cases/create-course.use-case.js';
 import { DeleteCourseUseCase } from './application/use-cases/delete-course.use-case.js';
 import { GetCourseUseCase } from './application/use-cases/get-course.use-case.js';
@@ -24,6 +25,25 @@ import { UpdateCourseUseCase } from './application/use-cases/update-course.use-c
 import { CreateCourseDto } from './dto/create-courses.dto.js';
 import { CoursesQueryDto } from './dto/courses-query.dto.js';
 import { UpdateCourseDto } from './dto/update-course.dto.js';
+
+/**
+ * Copies only the fields accepted by the update contract. The validation pipe
+ * already strips unknown properties, but this explicit mapping keeps the same
+ * guarantee when the controller is called directly in a unit test.
+ */
+function pickCourseChanges(dto: UpdateCourseDto): CourseChanges {
+  const changes: CourseChanges = {};
+
+  if (dto.title !== undefined) {
+    changes.title = dto.title;
+  }
+
+  if (dto.level !== undefined) {
+    changes.level = dto.level;
+  }
+
+  return changes;
+}
 
 /**
  * HTTP adapter: it only translates requests into use-case calls. It contains
@@ -72,7 +92,7 @@ export class CoursesController {
   ) {
     return this.updateCourse.execute({
       courseId: id,
-      changes: body,
+      changes: pickCourseChanges(body),
       actor: request.user,
     });
   }

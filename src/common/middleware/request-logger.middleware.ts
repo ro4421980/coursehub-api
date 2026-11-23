@@ -6,12 +6,7 @@ import type { RequestWithId } from '../types/request-with-id.type.js';
 const REQUEST_ID_PATTERN = /^[A-Za-z0-9._-]{1,64}$/;
 const MAX_LOGGED_PATH_LENGTH = 512;
 
-/**
- * Logs only request metadata: method, path (without query string), status and
- * duration. It never reads or stores the body, headers, cookies, query string
- * or authorization data, so passwords, tokens and personal data cannot leak
- * into the logs.
- */
+
 @Injectable()
 export class RequestLoggerMiddleware implements NestMiddleware {
   private readonly logger = new Logger(RequestLoggerMiddleware.name);
