@@ -23,7 +23,10 @@
 
 ## Description
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+API REST de CourseHub construida con NestJS, TypeORM y PostgreSQL. El proyecto
+se organiza por módulos y separa el adaptador HTTP, los casos de uso y la
+persistencia. Las pruebas unitarias de la Etapa 4 se ejecutan sin base de datos
+ni red; las pruebas de integración se incorporan en la Semana 13.
 
 ## Project setup
 
@@ -208,18 +211,58 @@ $ npm run start:dev
 $ npm run start:prod
 ```
 
-## Run tests
+## Pruebas
+
+### Etapa 4 · Semana 12 — pruebas unitarias que protegen reglas
+
+Comando principal:
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+npm test
 ```
+
+Ejecuta la suite unitaria completa con Vitest. No necesita PostgreSQL, Docker,
+variables de entorno ni conexión de red: los casos de uso usan un repositorio
+simulado en memoria y el controlador usa casos de uso simulados.
+
+Para ejecutar solo la evidencia de la Semana 12:
+
+```bash
+npm run test:etapa4
+```
+
+| Archivo | Qué protege |
+| --- | --- |
+| `src/courses/application/use-cases/update-course.use-case.spec.ts` | Éxito del docente propietario, actualización parcial, recurso inexistente, docente ajeno, estudiante, administrador y campos de identidad inmutables. |
+| `src/courses/courses.controller.spec.ts` | Delegación del `id` de la ruta, del DTO y de `request.user`; la identidad y la propiedad nunca se toman del cuerpo. |
+
+La regla de negocio vive en `UpdateCourseUseCase`: un administrador puede
+actualizar cualquier curso; un docente solo el propio; un estudiante nunca. El
+controlador no decide autorización, solo traduce HTTP al caso de uso.
+
+Demostración de mutación (ejecuta la suite, debilita temporalmente la regla,
+muestra la prueba que falla y restaura el archivo automáticamente):
+
+```bash
+npm run demo:etapa4
+```
+
+El informe completo, la matriz de trazabilidad y la explicación de qué quedaría
+desprotegido si se borrara una prueba están en
+[`docs/etapa-4.md`](docs/etapa-4.md). También hay una versión lista para
+entregar en [`docs/etapa-4.pdf`](docs/etapa-4.pdf).
+
+```bash
+# cobertura de la suite unitaria
+npm run test:cov
+
+# pruebas de integración HTTP (Semana 13)
+npm run test:e2e
+```
+
+Las pruebas que levantan un servidor HTTP se guardan como
+`test/*.e2e-spec.ts` y no forman parte de `npm test`. `npm run test:e2e` puede
+requerir PostgreSQL porque `test/app.e2e-spec.ts` arranca `AppModule` completo.
 
 ## Listado navegable de cursos
 

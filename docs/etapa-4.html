@@ -1,0 +1,917 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Etapa 4 · Semana 12 — CourseHub API</title>
+<style>
+  @page { size: A4; margin: 17mm 15mm 18mm 15mm; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Segoe UI", "Calibri", Arial, sans-serif;
+    font-size: 10.2pt;
+    line-height: 1.5;
+    color: #1f2937;
+    background: #fff;
+  }
+  .cover {
+    min-height: 245mm;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 18mm;
+    border: 1.5mm solid #0f4c81;
+    background: linear-gradient(145deg, #f8fbff 0%, #eaf2fb 100%);
+  }
+  .eyebrow {
+    color: #0f4c81;
+    font-size: 11pt;
+    font-weight: 700;
+    letter-spacing: 1.6px;
+    text-transform: uppercase;
+    margin-bottom: 10mm;
+  }
+  .cover h1 {
+    border: 0;
+    color: #0b2e4f;
+    font-size: 33pt;
+    line-height: 1.1;
+    margin: 0 0 7mm 0;
+    padding: 0;
+  }
+  .cover h2 {
+    border: 0;
+    color: #2563a8;
+    font-size: 17pt;
+    line-height: 1.3;
+    margin: 0 0 14mm 0;
+    padding: 0;
+  }
+  .rule {
+    width: 42mm;
+    height: 2.2mm;
+    background: #f59e0b;
+    margin-bottom: 14mm;
+  }
+  .cover .meta {
+    font-size: 10.5pt;
+    line-height: 1.8;
+    color: #334155;
+  }
+  .cover .meta strong { color: #0f4c81; }
+  .page-break { page-break-before: always; }
+  h1, h2, h3, h4 {
+    color: #0f4c81;
+    line-height: 1.25;
+    page-break-after: avoid;
+  }
+  h1 {
+    font-size: 21pt;
+    border-bottom: 1.2mm solid #0f4c81;
+    padding-bottom: 3mm;
+    margin: 0 0 6mm 0;
+  }
+  h2 {
+    font-size: 15.5pt;
+    margin: 8mm 0 3.5mm 0;
+    padding-left: 3mm;
+    border-left: 1.5mm solid #f59e0b;
+  }
+  h3 {
+    font-size: 12.5pt;
+    margin: 6mm 0 2.5mm 0;
+  }
+  p { margin: 0 0 2.6mm 0; }
+  strong { color: #0b2e4f; }
+  a { color: #1d4ed8; text-decoration: none; }
+  code {
+    font-family: "Cascadia Mono", Consolas, "Courier New", monospace;
+    font-size: 8.6pt;
+    background: #eef2f7;
+    color: #b42318;
+    padding: 0.3mm 1.2mm;
+    border-radius: 1mm;
+  }
+  pre {
+    background: #0f172a;
+    color: #e2e8f0;
+    padding: 3.2mm 4mm;
+    border-radius: 1.5mm;
+    font-size: 8.2pt;
+    line-height: 1.45;
+    overflow-x: hidden;
+    white-space: pre-wrap;
+    page-break-inside: avoid;
+    margin: 3mm 0 4mm 0;
+  }
+  pre code {
+    background: transparent;
+    color: inherit;
+    padding: 0;
+    font-size: inherit;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 3mm 0 4.5mm 0;
+    font-size: 8.7pt;
+    line-height: 1.35;
+    page-break-inside: avoid;
+  }
+  thead { display: table-header-group; }
+  th {
+    background: #0f4c81;
+    color: #fff;
+    text-align: left;
+    padding: 2mm 2.2mm;
+    border: 0.25mm solid #0f4c81;
+    font-weight: 700;
+  }
+  td {
+    padding: 1.7mm 2.2mm;
+    border: 0.25mm solid #cbd5e1;
+    vertical-align: top;
+    overflow-wrap: anywhere;
+  }
+  td code { overflow-wrap: anywhere; }
+  tbody tr:nth-child(even) { background: #f3f7fb; }
+  ul, ol { margin: 2mm 0 3mm 6mm; padding-left: 4mm; }
+  li { margin: 1mm 0; }
+  hr {
+    border: 0;
+    border-top: 0.3mm solid #cbd5e1;
+    margin: 6mm 0;
+  }
+  blockquote {
+    margin: 3mm 0;
+    padding: 2mm 4mm;
+    border-left: 1.2mm solid #f59e0b;
+    background: #fffbeb;
+    color: #4b5563;
+  }
+  .avoid-break { page-break-inside: avoid; }
+</style>
+</head>
+<body>
+<section class="cover">
+  <div class="eyebrow">Servidor Web · Etapa 4 · Semana 12</div>
+  <h1>CourseHub API</h1>
+  <h2>Pruebas unitarias que protegen reglas de negocio</h2>
+  <div class="rule"></div>
+  <div class="meta">
+    <strong>Caso de uso protegido:</strong> UpdateCourseUseCase<br>
+    <strong>Adaptador protegido:</strong> CoursesController<br>
+    <strong>Stack:</strong> NestJS 12 · TypeScript 6 · Vitest 4<br>
+    <strong>Evidencia:</strong> 62 pruebas unitarias · 13 focalizadas · mutación detectada<br>
+    <strong>Fecha:</strong> 23 de noviembre de 2026
+  </div>
+</section>
+<div class="page-break"></div>
+<table>
+<thead>
+<tr>
+<th>Campo</th>
+<th>Valor</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Proyecto</td>
+<td>CourseHub API</td>
+</tr>
+<tr>
+<td>Etapa</td>
+<td>4 — Semana 12</td>
+</tr>
+<tr>
+<td>Stack</td>
+<td>NestJS 12 · TypeScript 6 · Vitest 4</td>
+</tr>
+<tr>
+<td>Caso de uso protegido</td>
+<td><code>UpdateCourseUseCase</code></td>
+</tr>
+<tr>
+<td>Adaptador protegido</td>
+<td><code>CoursesController</code></td>
+</tr>
+<tr>
+<td>Repositorio</td>
+<td><code>C:\Users\anco_\OneDrive\Documentos\Universidad\ServidorWeb\coursehub-api</code></td>
+</tr>
+<tr>
+<td>Fecha de evidencia</td>
+<td>23 de noviembre de 2026</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>1. Resumen ejecutivo</h2>
+<p>Se implementó y consolidó una suite unitaria para la regla de negocio más
+sensible de <code>courses</code>: <strong>quién puede actualizar un curso</strong>. La suite demuestra
+con un repositorio simulado que:</p>
+<ul>
+<li>un docente propietario puede actualizar;</li>
+<li>un docente ajeno <strong>no</strong> puede;</li>
+<li>un estudiante <strong>nunca</strong> puede, aunque su id coincida con el propietario;</li>
+<li>un administrador puede actualizar cualquier curso;</li>
+<li>un curso inexistente produce un error de recurso no encontrado;</li>
+<li>una actualización parcial conserva los campos no enviados;</li>
+<li>el <code>id</code> y el propietario no se pueden cambiar desde el cuerpo de la petición.</li>
+</ul>
+<p>Además, el controlador se prueba como adaptador puro: se verifica que delega el
+<code>id</code> de la ruta, el DTO y la identidad autenticada (<code>request.user</code>) al caso de
+uso, y que no acepta identidad ni propiedad enviadas por el cliente.</p>
+<p><strong>Resultado medido</strong></p>
+<table>
+<thead>
+<tr>
+<th>Métrica</th>
+<th>Resultado</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Suite unitaria completa (<code>npm test</code>)</td>
+<td><strong>62 pruebas · 15 archivos · 7,97 s</strong></td>
+</tr>
+<tr>
+<td>Evidencia focalizada de la Semana 12</td>
+<td><strong>13 pruebas · 2 archivos · 3,89 s</strong></td>
+</tr>
+<tr>
+<td>Tiempo real de las 13 pruebas</td>
+<td><strong>60 ms</strong></td>
+</tr>
+<tr>
+<td>Cobertura de <code>update-course.use-case.ts</code></td>
+<td><strong>100 % statements / 100 % lines</strong></td>
+</tr>
+<tr>
+<td>Cobertura de <code>courses.controller.ts</code></td>
+<td><strong>100 % statements / 100 % lines</strong></td>
+</tr>
+<tr>
+<td>PostgreSQL, Docker o red</td>
+<td><strong>No usados por la suite unitaria</strong></td>
+</tr>
+<tr>
+<td>Demostración de mutación</td>
+<td><strong>1 prueba falla al debilitar la regla; se restaura y vuelve a 62/62</strong></td>
+</tr>
+</tbody>
+</table>
+<p>La suite es rápida, determinista y legible porque cada prueba construye su
+propio estado, usa fixtures fijos y verifica decisiones de negocio: errores,
+persistencia y ausencia de escrituras, no solo líneas ejecutadas.</p>
+<hr />
+<h2>2. Alcance obligatorio y evidencia</h2>
+<table>
+<thead>
+<tr>
+<th>Requisito de la consigna</th>
+<th>Dónde se cumple</th>
+<th>Estado</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pruebas unitarias de un caso de uso de negocio con repositorio simulado</td>
+<td><code>src/courses/application/use-cases/update-course.use-case.spec.ts</code> con <code>InMemoryCourseRepository</code></td>
+<td>Cumplido</td>
+</tr>
+<tr>
+<td>Incluye éxito, recurso inexistente y una regla de autorización o integridad rechazada</td>
+<td>Éxito: “updates and persists…” · Inexistente: “reports a missing course…” · Autorización: “rejects a teacher who does not own…”, “rejects a student…” · Integridad: “cannot change the id or the owner…”</td>
+<td>Cumplido</td>
+</tr>
+<tr>
+<td>Prueba de controlador que verifica delegación de identificador, DTO e identidad autenticada</td>
+<td><code>src/courses/courses.controller.spec.ts</code></td>
+<td>Cumplido</td>
+</tr>
+<tr>
+<td>Las pruebas no usan PostgreSQL ni red</td>
+<td>Repositorio en memoria y casos de uso simulados; sin <code>supertest</code> en <code>src/**/*.spec.ts</code>; las pruebas HTTP se movieron a <code>test/*.e2e-spec.ts</code></td>
+<td>Cumplido</td>
+</tr>
+<tr>
+<td>El README indica el comando para ejecutar las pruebas</td>
+<td>Sección <strong>Pruebas</strong> del <code>README.md</code>: <code>npm test</code> y comando focalizado</td>
+<td>Cumplido</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>3. La regla que se protege</h2>
+<p><code>UpdateCourseUseCase</code> concentra la decisión de negocio. El controlador no
+decide autorización: solo traduce HTTP al caso de uso.</p>
+<pre><code class="language-ts">const isAdmin = input.actor.role === UserRole.ADMIN;
+const isOwner = course.createdByUserId === input.actor.id;
+const isTeacher = input.actor.role === UserRole.TEACHER;
+
+if (!isAdmin &amp;&amp; !(isTeacher &amp;&amp; isOwner)) {
+  throw new CourseAccessDeniedError();
+}
+</code></pre>
+<p>Matriz de decisión:</p>
+<table>
+<thead>
+<tr>
+<th>Rol del actor</th>
+<th style="text-align:center">¿Es propietario?</th>
+<th style="text-align:center">¿Puede actualizar?</th>
+<th>Resultado esperado</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>admin</code></td>
+<td style="text-align:center">Sí</td>
+<td style="text-align:center">Sí</td>
+<td>Actualiza y persiste</td>
+</tr>
+<tr>
+<td><code>admin</code></td>
+<td style="text-align:center">No</td>
+<td style="text-align:center">Sí</td>
+<td>Actualiza y persiste</td>
+</tr>
+<tr>
+<td><code>teacher</code></td>
+<td style="text-align:center">Sí</td>
+<td style="text-align:center">Sí</td>
+<td>Actualiza y persiste</td>
+</tr>
+<tr>
+<td><code>teacher</code></td>
+<td style="text-align:center">No</td>
+<td style="text-align:center"><strong>No</strong></td>
+<td><code>CourseAccessDeniedError</code>; no guarda</td>
+</tr>
+<tr>
+<td><code>student</code></td>
+<td style="text-align:center">Sí</td>
+<td style="text-align:center"><strong>No</strong></td>
+<td><code>CourseAccessDeniedError</code>; no guarda</td>
+</tr>
+<tr>
+<td>Cualquiera</td>
+<td style="text-align:center">Curso inexistente</td>
+<td style="text-align:center"><strong>No</strong></td>
+<td><code>CourseNotFoundError</code>; no guarda</td>
+</tr>
+</tbody>
+</table>
+<p>La regla también protege la integridad del recurso: después de autorizar, solo
+se copian <code>title</code> y <code>level</code>. <code>id</code> y <code>createdByUserId</code> son datos de identidad y
+no pueden modificarse con un <code>PATCH</code>, aunque un llamador omita la validación del
+DTO.</p>
+<hr />
+<h2>4. Diseño de las pruebas del caso de uso</h2>
+<h3>4.1 Repositorio simulado</h3>
+<p><code>InMemoryCourseRepository</code> implementa el puerto real
+<code>CourseRepository</code> con un arreglo en memoria:</p>
+<ul>
+<li>no importa TypeORM, <code>pg</code> ni Nest;</li>
+<li>implementa <code>findById</code>, <code>save</code>, <code>create</code>, <code>delete</code> y <code>findPage</code>;</li>
+<li>cada prueba crea una instancia nueva con un curso fijo;</li>
+<li><code>save</code> falla si se intenta guardar un curso que no existe, lo que evita
+falsos positivos;</li>
+<li><code>vi.spyOn(repository, 'save')</code> permite comprobar que una operación rechazada
+<strong>no escribió</strong>.</li>
+</ul>
+<p>Se eligió un <em>fake</em> en memoria, y no un mock de todas las funciones, porque
+permite verificar el efecto real de la regla: el estado del repositorio después
+de la operación. El espía se usa solo para la garantía negativa (“no se llamó a
+<code>save</code>”).</p>
+<h3>4.2 Casos y comportamiento protegido</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Prueba</th>
+<th>Escenario</th>
+<th>Decisión verificada</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>updates and persists the course when the teacher owns it</code></td>
+<td>Docente propietario actualiza título y nivel</td>
+<td>Éxito, <code>save</code> una vez y estado persistido</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>keeps fields that the partial update does not mention</code></td>
+<td>Docente envía solo <code>title</code></td>
+<td>Actualización parcial sin borrar <code>level</code></td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>rejects a teacher who does not own the course</code></td>
+<td>Docente ajeno intenta actualizar</td>
+<td><code>CourseAccessDeniedError</code>, sin escritura y estado intacto</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>rejects a student even when the student id matches the owner</code></td>
+<td>Estudiante con el mismo id del propietario</td>
+<td>El rol se evalúa además de la propiedad</td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>allows an admin to update a course owned by someone else</code></td>
+<td>Administrador sobre curso ajeno</td>
+<td>Excepción legítima de la regla</td>
+</tr>
+<tr>
+<td>6</td>
+<td><code>reports a missing course before applying the authorization rule</code></td>
+<td>Id <code>999</code></td>
+<td><code>CourseNotFoundError</code> con el id correcto, sin escritura</td>
+</tr>
+<tr>
+<td>7</td>
+<td><code>cannot change the id or the owner through the update payload</code></td>
+<td>Cuerpo hostil con <code>id</code> y <code>createdByUserId</code></td>
+<td>La integridad del recurso prevalece</td>
+</tr>
+</tbody>
+</table>
+<p>Las pruebas 3, 4 y 7 son las que convierten la suite en una red de seguridad de
+negocio, no en una simple ejecución de líneas.</p>
+<hr />
+<h2>5. Prueba del controlador</h2>
+<p>El controlador se instancia directamente con casos de uso simulados. No se
+levanta un servidor HTTP, no se abre un puerto y no se usa <code>supertest</code>.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Prueba</th>
+<th>Qué verifica</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>delegates the parsed route id to GetCourseUseCase</code></td>
+<td>El <code>id</code> de la ruta llega como número al caso de uso</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>delegates the list query without rewriting it</code></td>
+<td>El DTO de consulta se delega sin transformaciones ocultas</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>updates with the route id, the DTO and the authenticated actor</code></td>
+<td><code>courseId</code>, <code>changes</code> y <code>actor</code> llegan exactamente al caso de uso</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>does not let the body override identity or ownership on PATCH</code></td>
+<td><code>id</code>, <code>createdByUserId</code> y <code>role</code> del cuerpo se descartan; manda <code>request.user</code></td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>creates the course with the authenticated creator, not with body data</code></td>
+<td>El propietario se toma de la identidad autenticada</td>
+</tr>
+<tr>
+<td>6</td>
+<td><code>delegates DELETE to the use case with the route id</code></td>
+<td>El <code>id</code> de la ruta se delega en el caso de uso de borrado</td>
+</tr>
+</tbody>
+</table>
+<p>La prueba 4 es la evidencia explícita de <strong>delegación de identidad</strong>: aunque el
+cuerpo incluya <code>role: admin</code> o <code>createdByUserId: 999</code>, el controlador envía el
+usuario autenticado y solo los campos permitidos del DTO. Para lograrlo de forma
+defensa en profundidad, el controlador usa <code>pickCourseChanges()</code>, que copia
+únicamente <code>title</code> y <code>level</code> cuando están presentes.</p>
+<hr />
+<h2>6. Frontera entre prueba unitaria e integración</h2>
+<p>La Semana 12 exige pruebas sin PostgreSQL ni red. Para que esa afirmación sea
+verificable, la suite unitaria se separó de las pruebas HTTP:</p>
+<table>
+<thead>
+<tr>
+<th>Tipo</th>
+<th>Ubicación</th>
+<th>Comando</th>
+<th>Usa red/DB</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Unitaria</td>
+<td><code>src/**/*.spec.ts</code></td>
+<td><code>npm test</code></td>
+<td>No</td>
+</tr>
+<tr>
+<td>Integración HTTP</td>
+<td><code>test/*.e2e-spec.ts</code></td>
+<td><code>npm run test:e2e</code></td>
+<td>Red local en proceso; <code>app.e2e-spec.ts</code> puede requerir PostgreSQL</td>
+</tr>
+</tbody>
+</table>
+<p>Cambios realizados para mantener la frontera:</p>
+<ol>
+<li>Las pruebas HTTP de <code>CoursesController</code> que estaban en
+<code>src/courses/courses.controller.spec.ts</code> se conservaron en
+<code>test/courses.e2e-spec.ts</code>.</li>
+<li>Las pruebas HTTP de <code>AuthController</code> se movieron a
+<code>test/auth.e2e-spec.ts</code>.</li>
+<li>El nuevo <code>src/courses/courses.controller.spec.ts</code> es unitario puro.</li>
+<li>La suite unitaria ya no importa <code>supertest</code> ni arranca una aplicación Nest
+con servidor.</li>
+</ol>
+<p>No se perdió cobertura: las 28 pruebas HTTP movidas siguen pasando con
+<code>vitest --config vitest.config.e2e.ts</code>. Simplemente ya no cuentan como
+evidencia unitaria de la Semana 12.</p>
+<hr />
+<h2>7. Ejecución y resultados</h2>
+<h3>7.1 Suite unitaria completa</h3>
+<pre><code class="language-powershell">PS C:\...\coursehub-api&gt; npm test
+
+ Test Files  15 passed (15)
+      Tests  62 passed (62)
+   Start at  13:29:14
+   Duration  7.97s (transform 1.35s, setup 0ms, import 33.65s, tests 3.02s, environment 6ms)
+</code></pre>
+<h3>7.2 Evidencia focalizada de la Semana 12</h3>
+<pre><code class="language-powershell">PS C:\...\coursehub-api&gt; npm run test:etapa4
+
+&gt; coursehub-api@0.0.1 test:etapa4
+&gt; vitest run src/courses/application/use-cases/update-course.use-case.spec.ts src/courses/courses.controller.spec.ts
+
+ Test Files  2 passed (2)
+      Tests  13 passed (13)
+   Start at  13:34:19
+   Duration  3.89s (transform 471ms, setup 0ms, import 4.68s, tests 60ms, environment 1ms)
+</code></pre>
+<p>Interpretación: <strong>13 pruebas en 60 ms de ejecución real</strong>. El tiempo restante
+es el arranque de Vitest y la transformación de TypeScript, no la lógica de
+negocio.</p>
+<h3>7.3 Cobertura de los archivos protegidos</h3>
+<pre><code class="language-text">
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;File&lt;/th&gt;
+&lt;th&gt;% Stmts&lt;/th&gt;
+&lt;th&gt;% Branch&lt;/th&gt;
+&lt;th&gt;% Funcs&lt;/th&gt;
+&lt;th&gt;% Lines&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;courses.controller.ts&lt;/td&gt;
+&lt;td&gt;100&lt;/td&gt;
+&lt;td&gt;75&lt;/td&gt;
+&lt;td&gt;100&lt;/td&gt;
+&lt;td&gt;100&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;update-course.use-case.ts&lt;/td&gt;
+&lt;td&gt;100&lt;/td&gt;
+&lt;td&gt;91.66&lt;/td&gt;
+&lt;td&gt;100&lt;/td&gt;
+&lt;td&gt;100&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+</code></pre>
+<p>La cobertura global de la suite unitaria es 80,66 % de statements. No se usa
+como meta por sí sola: lo relevante es que las decisiones de la regla tengan
+aserciones de comportamiento y que la mutación sea detectada.</p>
+<hr />
+<h2>8. Demostración: cambiar la regla y ver fallar la prueba</h2>
+<p>La demo está automatizada en <code>docs/etapa-4-demo.mjs</code> y se ejecuta con:</p>
+<pre><code class="language-powershell">npm run demo:etapa4
+</code></pre>
+<p>El script hace cinco pasos y <strong>restaura el archivo en un bloque <code>finally</code></strong>:</p>
+<ol>
+<li>ejecuta la suite completa en verde;</li>
+<li>debilita temporalmente la regla de propiedad;</li>
+<li>ejecuta el spec del caso de uso y exige que falle;</li>
+<li>restaura el archivo original;</li>
+<li>vuelve a ejecutar la suite completa y exige que pase.</li>
+</ol>
+<h3>8.1 Mutación aplicada</h3>
+<pre><code class="language-diff">- if (!isAdmin &amp;&amp; !(isTeacher &amp;&amp; isOwner)) {
++ if (!isAdmin &amp;&amp; !isTeacher) { // MUTACION TEMPORAL
+</code></pre>
+<p>La mutación elimina <code>isOwner</code>: cualquier docente pasa la autorización, sin
+importar quién creó el curso.</p>
+<h3>8.2 Fallo observado</h3>
+<pre><code class="language-text">❯ src/courses/application/use-cases/update-course.use-case.spec.ts (7 tests | 1 failed)
+     × rejects a teacher who does not own the course
+
+FAIL  UpdateCourseUseCase &gt; rejects a teacher who does not own the course
+AssertionError: promise resolved &quot;{ id: 5, title: 'Cambio ajeno', …(2) }&quot; instead of rejecting
+
+- Expected
++ Received
+
+- Error { &quot;message&quot;: &quot;rejected promise&quot; }
++ {
++   &quot;createdByUserId&quot;: 2,
++   &quot;id&quot;: 5,
++   &quot;level&quot;: &quot;beginner&quot;,
++   &quot;title&quot;: &quot;Cambio ajeno&quot;,
++ }
+</code></pre>
+<p>El resultado es exactamente el peligro que se quiere evitar: el docente ajeno
+(id 8) modificó el título del curso del propietario (id 2) y el repositorio
+guardó el cambio.</p>
+<h3>8.3 Restauración</h3>
+<pre><code class="language-powershell">=== 4. Regla restaurada ===
+=== 5. Suite completa restaurada en verde ===
+
+ Test Files  15 passed (15)
+      Tests  62 passed (62)
+   Start at  13:29:26
+   Duration  7.98s
+</code></pre>
+<h3>8.4 ¿Qué quedaría desprotegido si se borrara esa prueba?</h3>
+<p>Si se elimina <code>rejects a teacher who does not own the course</code>, la mutación
+anterior <strong>pasaría inadvertida</strong>: las otras 6 pruebas del caso de uso seguirían
+en verde. En concreto, quedarían sin red de seguridad:</p>
+<ul>
+<li><strong>Escalada horizontal de privilegios:</strong> un docente podría editar cursos de
+otros docentes. El <code>RolesGuard</code> solo comprueba que el rol sea <code>teacher</code>; la
+decisión de propiedad vive en el caso de uso.</li>
+<li><strong>Integridad de los cursos ajenos:</strong> títulos y niveles podrían alterarse sin
+ser el propietario, con impacto directo en el catálogo.</li>
+<li><strong>Trazabilidad:</strong> el curso conservaría <code>createdByUserId</code> del propietario
+original, pero con contenido modificado por otra persona; la auditoría
+quedaría engañosa.</li>
+<li><strong>Regresión silenciosa:</strong> un refactor que sustituya
+<code>!(isTeacher &amp;&amp; isOwner)</code> por <code>!isTeacher</code>, o que elimine <code>isOwner</code>, no sería
+detectado por las demás pruebas.</li>
+</ul>
+<p>La prueba no verifica “que se ejecute una línea”: verifica que <strong>no se escriba</strong>
+en el repositorio y que el estado permanezca intacto cuando la identidad no
+autoriza. Esa es la diferencia entre cobertura y protección.</p>
+<hr />
+<h2>9. Matriz de trazabilidad completa</h2>
+<table>
+<thead>
+<tr>
+<th>Requisito</th>
+<th>Prueba(s)</th>
+<th>Archivo</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Éxito del caso de uso</td>
+<td><code>updates and persists…</code>, <code>keeps fields…</code></td>
+<td><code>update-course.use-case.spec.ts</code></td>
+</tr>
+<tr>
+<td>Recurso inexistente</td>
+<td><code>reports a missing course…</code></td>
+<td><code>update-course.use-case.spec.ts</code></td>
+</tr>
+<tr>
+<td>Autorización rechazada</td>
+<td><code>rejects a teacher…</code>, <code>rejects a student…</code></td>
+<td><code>update-course.use-case.spec.ts</code></td>
+</tr>
+<tr>
+<td>Integridad rechazada</td>
+<td><code>cannot change the id or the owner…</code></td>
+<td><code>update-course.use-case.spec.ts</code></td>
+</tr>
+<tr>
+<td>Delegación de identificador</td>
+<td><code>delegates the parsed route id…</code>, <code>delegates DELETE…</code></td>
+<td><code>courses.controller.spec.ts</code></td>
+</tr>
+<tr>
+<td>Delegación de DTO</td>
+<td><code>updates with the route id, the DTO…</code>, <code>delegates the list query…</code></td>
+<td><code>courses.controller.spec.ts</code></td>
+</tr>
+<tr>
+<td>Identidad autenticada</td>
+<td><code>updates with…</code>, <code>does not let the body override…</code>, <code>creates…</code></td>
+<td><code>courses.controller.spec.ts</code></td>
+</tr>
+<tr>
+<td>Sin PostgreSQL ni red</td>
+<td>Repositorio en memoria + casos de uso simulados</td>
+<td>Ambos specs</td>
+</tr>
+<tr>
+<td>Comando en README</td>
+<td><code>npm test</code> y comando focalizado</td>
+<td><code>README.md</code></td>
+</tr>
+<tr>
+<td>Demostración de fallo</td>
+<td>Regla mutada → 1 fallo → restauración → 62/62</td>
+<td><code>docs/etapa-4-demo.mjs</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>10. Guion de exposición (7 minutos)</h2>
+<table>
+<thead>
+<tr>
+<th>Tiempo</th>
+<th>Acción</th>
+<th>Mensaje clave</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0:00–1:00</td>
+<td>Muestra <code>src/courses/application/use-cases/update-course.use-case.ts</code></td>
+<td>“La regla de propiedad está en el caso de uso, no en el controlador”.</td>
+</tr>
+<tr>
+<td>1:00–2:30</td>
+<td>Abre <code>update-course.use-case.spec.ts</code> y la matriz de decisión</td>
+<td>“Siete pruebas: éxito, parcial, docente ajeno, estudiante, admin, inexistente e integridad”.</td>
+</tr>
+<tr>
+<td>2:30–3:30</td>
+<td>Señala <code>InMemoryCourseRepository</code> y <code>vi.spyOn(save)</code></td>
+<td>“Repositorio simulado: verifico estado y también que no se escriba”.</td>
+</tr>
+<tr>
+<td>3:30–4:30</td>
+<td>Abre <code>courses.controller.spec.ts</code></td>
+<td>“El controlador delega id, DTO e identidad; no decide autorización”.</td>
+</tr>
+<tr>
+<td>4:30–5:15</td>
+<td>Ejecuta <code>npm test</code></td>
+<td>“62 pruebas en menos de 8 segundos, sin base de datos ni red”.</td>
+</tr>
+<tr>
+<td>5:15–6:30</td>
+<td>Ejecuta <code>npm run demo:etapa4</code></td>
+<td>“Al quitar <code>isOwner</code>, falla exactamente la prueba de docente ajeno; restauro y vuelve a verde”.</td>
+</tr>
+<tr>
+<td>6:30–7:00</td>
+<td>Cierra con la sección 8.4</td>
+<td>“Sin esa prueba, la escalada horizontal pasaría inadvertida”.</td>
+</tr>
+</tbody>
+</table>
+<p>No hace falta mostrar tokens, credenciales ni datos reales: toda la evidencia es
+local, sintética y determinista.</p>
+<hr />
+<h2>11. Reproducción desde cero</h2>
+<p>Requisitos: Node.js ≥ 24.20 (definido en <code>package.json</code>) y dependencias
+instaladas.</p>
+<pre><code class="language-powershell">cd C:\Users\anco_\OneDrive\Documentos\Universidad\ServidorWeb\coursehub-api
+npm install
+
+# Suite unitaria completa (sin PostgreSQL ni red)
+npm test
+
+# Solo la evidencia de la Semana 12
+npm run test:etapa4
+
+# Cobertura
+npm run test:cov
+
+# Demostración de mutación con restauración automática
+npm run demo:etapa4
+
+# Integración HTTP (Semana 13; puede requerir PostgreSQL)
+npm run test:e2e
+</code></pre>
+<p>Verificaciones adicionales ejecutadas:</p>
+<pre><code class="language-text">npm run build  → OK
+npm run lint   → OK
+</code></pre>
+<hr />
+<h2>12. Limitaciones y siguiente etapa</h2>
+<ul>
+<li>La suite unitaria <strong>no</strong> prueba transacciones, concurrencia, restricciones de
+PostgreSQL ni migraciones. Eso corresponde a la integración de la Semana 13.</li>
+<li><code>test/app.e2e-spec.ts</code> arranca <code>AppModule</code> completo y puede necesitar la base
+de datos local; por eso no forma parte de <code>npm test</code>.</li>
+<li>La cobertura global incluye módulos antiguos con menor cobertura. La métrica
+relevante de esta entrega es la cobertura y, sobre todo, la detección de
+mutaciones en la regla protegida.</li>
+<li>El script de demo restaura el archivo en <code>finally</code>; no se debe interrumpir con
+<code>Ctrl+C</code> mientras la mutación está activa. Si ocurriera, basta con ejecutar
+<code>git checkout -- src/courses/application/use-cases/update-course.use-case.ts</code>.</li>
+<li>No se inventaron reglas nuevas (por ejemplo, rechazar un <code>PATCH</code> vacío): la
+suite protege el comportamiento definido en la Etapa 3.</li>
+</ul>
+<hr />
+<h2>13. Lista de evidencia para entregar</h2>
+<ul>
+<li>☑ Spec del caso de uso con repositorio simulado.</li>
+<li>☑ Casos de éxito, recurso inexistente, autorización e integridad.</li>
+<li>☑ Spec unitario del controlador con id, DTO e identidad.</li>
+<li>☑ Suite unitaria sin <code>supertest</code>, PostgreSQL ni red.</li>
+<li>☑ Comando <code>npm test</code> documentado en el README.</li>
+<li>☑ Salida real de la suite completa (62/62).</li>
+<li>☑ Salida real de la suite focalizada (13/13).</li>
+<li>☑ Mutación, fallo observado y restauración (62/62).</li>
+<li>☑ Explicación de qué quedaría desprotegido sin la prueba.</li>
+<li>☑ <code>npm run build</code> y <code>npm run lint</code> sin errores.</li>
+<li>☐ Capturas de pantalla para el aula virtual (opcional; el log de
+<code>docs/etapa-4-demo-output.txt</code> sirve como evidencia textual).</li>
+</ul>
+<hr />
+<h2>Anexo A. Archivos modificados o creados</h2>
+<table>
+<thead>
+<tr>
+<th>Archivo</th>
+<th>Cambio</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>src/courses/application/use-cases/update-course.use-case.spec.ts</code></td>
+<td>Suite unitaria reescrita y ampliada a 7 casos.</td>
+</tr>
+<tr>
+<td><code>src/courses/courses.controller.spec.ts</code></td>
+<td>Nuevo spec unitario puro de 6 casos.</td>
+</tr>
+<tr>
+<td><code>src/courses/application/use-cases/update-course.use-case.ts</code></td>
+<td>Copia explícita de <code>title</code>/<code>level</code>; identidad inmutable.</td>
+</tr>
+<tr>
+<td><code>src/courses/courses.controller.ts</code></td>
+<td><code>pickCourseChanges()</code> para no reenviar campos ajenos al DTO.</td>
+</tr>
+<tr>
+<td><code>test/courses.e2e-spec.ts</code></td>
+<td>Pruebas HTTP de cursos conservadas para la Semana 13.</td>
+</tr>
+<tr>
+<td><code>test/auth.e2e-spec.ts</code></td>
+<td>Pruebas HTTP de autenticación movidas fuera de la suite unitaria.</td>
+</tr>
+<tr>
+<td><code>docs/etapa-4-demo.mjs</code></td>
+<td>Demo reproducible de mutación con restauración.</td>
+</tr>
+<tr>
+<td><code>docs/etapa-4-demo-output.txt</code></td>
+<td>Salida real de la demo.</td>
+</tr>
+<tr>
+<td><code>docs/etapa-4.md</code></td>
+<td>Este informe en Markdown.</td>
+</tr>
+<tr>
+<td><code>docs/etapa-4.html</code> / <code>docs/etapa-4.pdf</code></td>
+<td>Versión formateada para entrega.</td>
+</tr>
+<tr>
+<td><code>README.md</code></td>
+<td>Sección de pruebas y comandos.</td>
+</tr>
+<tr>
+<td><code>package.json</code></td>
+<td>Script <code>demo:etapa4</code>.</td>
+</tr>
+</tbody>
+</table>
+<h2>Anexo B. Nombres completos de las pruebas de la Semana 12</h2>
+<p><strong><code>update-course.use-case.spec.ts</code></strong></p>
+<ol>
+<li><code>updates and persists the course when the teacher owns it</code></li>
+<li><code>keeps fields that the partial update does not mention</code></li>
+<li><code>rejects a teacher who does not own the course</code></li>
+<li><code>rejects a student even when the student id matches the owner</code></li>
+<li><code>allows an admin to update a course owned by someone else</code></li>
+<li><code>reports a missing course before applying the authorization rule</code></li>
+<li><code>cannot change the id or the owner through the update payload</code></li>
+</ol>
+<p><strong><code>courses.controller.spec.ts</code></strong></p>
+<ol>
+<li><code>delegates the parsed route id to GetCourseUseCase</code></li>
+<li><code>delegates the list query without rewriting it</code></li>
+<li><code>updates with the route id, the DTO and the authenticated actor</code></li>
+<li><code>does not let the body override identity or ownership on PATCH</code></li>
+<li><code>creates the course with the authenticated creator, not with body data</code></li>
+<li><code>delegates DELETE to the use case with the route id</code></li>
+</ol>
+
+</body>
+</html>
