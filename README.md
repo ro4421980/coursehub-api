@@ -166,6 +166,35 @@ No hay migraciones en el repositorio todavía; antes de desplegar cambios de
 esquema en producción, hay que crearlas, revisarlas y aplicarlas de forma
 controlada. No se debe habilitar `synchronize` en producción.
 
+## Evidencia Etapa 3: arquitectura y comportamiento transversal
+
+El módulo `courses` separa HTTP, regla de negocio y persistencia:
+
+- **HTTP**: `src/courses/courses.controller.ts` solo declara rutas, guards,
+  pipes y DTOs, y llama a un caso de uso.
+- **Regla de negocio**: `src/courses/application/use-cases/update-course.use-case.ts`
+  busca el curso, aplica la autorización de propiedad y actualiza. No importa
+  Express ni TypeORM; solo usa los decoradores de inyección de NestJS.
+- **Contrato**: `src/courses/application/ports/course.repository.ts` define las
+  cinco operaciones que necesitan los casos de uso.
+- **Persistencia**: `src/courses/infrastructure/typeorm-course.repository.ts`
+  implementa ese contrato con TypeORM.
+
+Los componentes transversales se registran una sola vez en `src/app.module.ts`:
+
+- `RequestLoggerMiddleware` registra solo método, ruta sin query string,
+  estado, duración y `requestId`. Nunca guarda cuerpos, cabeceras, cookies,
+  query string, contraseñas ni tokens.
+- `AllExceptionsFilter` devuelve siempre
+  `{ statusCode, error, message, path, timestamp, requestId }`. Los `5xx`
+  responden `"Internal server error"` y la traza queda únicamente en el log del
+  servidor.
+
+La guía de demostración, los cuatro casos (correcto, id inválido, recurso
+inexistente y prohibido) y las consultas de verificación están en
+[`docs/etapa-3.md`](docs/etapa-3.md). Las solicitudes también están listas para
+REST Client en [`docs/etapa-3.http`](docs/etapa-3.http).
+
 ## Compile and run the project
 
 ```bash

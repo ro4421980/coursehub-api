@@ -1,0 +1,82 @@
+@host = http://localhost:3000
+@ownerToken = paste-owner-teacher-token
+@otherToken = paste-other-teacher-token
+@adminToken = paste-admin-token
+@courseId = 4
+
+### Registro (repetir para las tres cuentas)
+POST {{host}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "owner.teacher@example.test",
+  "password": "CourseHub-2026!"
+}
+
+### Login del docente propietario
+POST {{host}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "owner.teacher@example.test",
+  "password": "CourseHub-2026!"
+}
+
+### Crear curso (usar ownerToken)
+POST {{host}}/courses
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{
+  "title": "Arquitectura mantenible",
+  "level": "advanced"
+}
+
+### 1. Solicitud correcta (docente propietario)
+PATCH {{host}}/courses/{{courseId}}
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+x-request-id: demo-correcto
+
+{
+  "title": "Arquitectura mantenible (actualizado)"
+}
+
+### 2. Identificador inválido
+PATCH {{host}}/courses/abc
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+x-request-id: demo-id-invalido
+
+{
+  "title": "No se aplica"
+}
+
+### 3. Recurso inexistente
+PATCH {{host}}/courses/999999
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+x-request-id: demo-no-existe
+
+{
+  "title": "No se aplica"
+}
+
+### 4. Prohibida (docente ajeno)
+PATCH {{host}}/courses/{{courseId}}
+Authorization: Bearer {{otherToken}}
+Content-Type: application/json
+x-request-id: demo-prohibido
+
+{
+  "title": "No se aplica"
+}
+
+### Extra: administrador sobre el mismo curso
+PATCH {{host}}/courses/{{courseId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "title": "Actualización del administrador"
+}
