@@ -1,5 +1,5 @@
-import { Module } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -10,6 +10,8 @@ import { AppService } from './app.service.js';
 import { WelcomeController } from './welcome.controller.js';
 import { WelcomeService } from './welcome.service.js';
 import { AuthModule } from './auth/auth.module.js';
+import { AllExceptionsFilter } from './common/filters/all-exceptions.filter.js';
+import { RequestLoggerMiddleware } from './common/middleware/request-logger.middleware.js';
 import {
   createTypeOrmOptions,
   environmentValidationSchema,
@@ -44,6 +46,15 @@ import {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
     },
+    {
+      provide: APP_FILTER,
+      useClass: AllExceptionsFilter,
+    },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer): void {
+    // Applied once, for every route, in a single controlled place.
+    consumer.apply(RequestLoggerMiddleware).forRoutes('*');
+  }
+}
